@@ -219,3 +219,46 @@ document.addEventListener('visibilitychange', () => {
 
 // Initialize Carousel
 startAutoPlay();
+
+// ─── Contact Form AJAX Submission ───
+const contactForm = document.getElementById('contactForm');
+const submitBtn = document.getElementById('submitBtn');
+
+if (contactForm && submitBtn) {
+    contactForm.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent standard page redirect
+        
+        // Change button state
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+        submitBtn.disabled = true;
+        
+        const formData = new FormData(contactForm);
+        
+        fetch(contactForm.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success || data.success === "true") {
+                // Redirect securely on success
+                const nextUrl = contactForm.querySelector('input[name="_next"]').value;
+                window.location.href = nextUrl;
+            } else {
+                alert("Something went wrong. Please try again or contact us via WhatsApp.");
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("Network error. Please try again later.");
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+}

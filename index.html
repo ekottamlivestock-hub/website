@@ -352,10 +352,10 @@
             </div>
 
             <div class="contact-form-wrapper reveal" style="transition-delay: 0.2s;">
-                <form class="ekottam-form" action="https://formsubmit.co/ekottam.livestock@gmail.com" method="POST">
+                <form id="contactForm" class="ekottam-form" action="https://formsubmit.co/ajax/ekottam.livestock@gmail.com" method="POST">
                     <input type="hidden" name="_subject" value="New Lead from Ekottam Website!">
                     <input type="hidden" name="_template" value="table">
-                    <input type="hidden" name="_captcha" value="true">
+                    <input type="hidden" name="_captcha" value="false">
                     <input type="hidden" name="_next" value="https://ekottam.vercel.app/thankyou.html">
                     <!-- Honeypot anti-spam -->
                     <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
@@ -372,7 +372,7 @@
                         <label for="address">Address</label>
                         <textarea id="address" name="address" rows="4" placeholder="Enter your complete address" autocomplete="street-address" required></textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary submit-btn">Submit Details</button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary submit-btn">Submit Details</button>
                 </form>
             </div>
         </div>
