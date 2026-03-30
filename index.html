@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EKOTTAM | LIVE STOCK</title>
+    <meta name="description" content="Pan-India platform to buy and sell all kinds of livestock — cattle, buffalo, goats, sheep, poultry, pigs, horses, camels, and fisheries">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Marquee Ticker - Top -->
+    <div class="marquee-wrapper" id="top-marquee">
+        <div class="marquee-content" id="marquee-content">
+            <!-- Populated via JS for infinite effect -->
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="container nav-container">
+            <a href="#" class="logo">
+                <div class="logo-anim">
+                    <svg class="logo-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Animated Bull Head Outline -->
+                        <path class="logo-livestock" d="M14 26 C12 28, 12 32, 16 32 C18 32, 20 30, 22 28 C20 20, 16 14, 12 12 C18 12, 24 18, 26 22 C30 20, 34 20, 38 22 C40 18, 46 12, 52 12 C48 14, 44 20, 42 28 C44 30, 46 32, 48 32 C52 32, 52 28, 50 26 C53 34, 50 44, 42 50 C38 53, 26 53, 22 50 C14 44, 11 34, 14 26 Z" fill="none" stroke="var(--color-accent)" stroke-width="2.5" stroke-linejoin="round" />
+                        <!-- Eyes -->
+                        <circle class="logo-eye" cx="24" cy="34" r="2.5" fill="var(--color-accent)" />
+                        <circle class="logo-eye" cx="40" cy="34" r="2.5" fill="var(--color-accent)" />
+                        <!-- Snout highlight -->
+                        <path class="logo-snout" d="M28 46 C32 49, 36 46, 36 46" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <span>
+                    EKOTTAM
+                    <span class="tagline">LIVE STOCK</span>
+                </span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#about">About</a></li>
+                <li><a href="#schemes">Schemes</a></li>
+                <li><a href="#testimonials">Testimonials</a></li>
+                <li><a href="#cta" class="btn btn-primary nav-cta">Get Started</a></li>
+            </ul>
+            <div class="mobile-toggle">
+                <i data-lucide="menu"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="home">
+        <div class="hero-slider-wrapper">
+            <div class="hero-slider" id="hero-slider">
+                <div class="slide" style="background-image: url('images/1.jpg');"></div>
+                <div class="slide" style="background-image: url('images/2.jpg');"></div>
+                <div class="slide" style="background-image: url('images/3.jpg');"></div>
+                <div class="slide" style="background-image: url('images/4.jpg');"></div>
+                <div class="slide" style="background-image: url('images/5.jpg');"></div>
+            </div>
+            
+            <div class="hero-contact-wrapper" style="position: absolute; bottom: 65px; left: 50%; transform: translateX(-50%); z-index: 15;">
+                <a href="#contact" class="btn btn-primary" style="font-size: 0.95rem; padding: 0.6rem 1.8rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">Contact Us</a>
+            </div>
+
+            <div class="slider-dots" id="slider-dots">
+                <div class="dot active" data-index="0"></div>
+                <div class="dot" data-index="1"></div>
+                <div class="dot" data-index="2"></div>
+                <div class="dot" data-index="3"></div>
+                <div class="dot" data-index="4"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Intro Strip -->
+    <section class="intro-strip">
+        <div class="container text-center reveal">
+            <h2>Welcome to EKOTTAM</h2>
+            <p>
+                The ultimate pan-India platform connecting farmers and buyers for fair, direct, 
+                and verified livestock trading without middlemen. Explore categories, secure transport,
+                and access government subsidies—all in one place to grow your rural business.
+            </p>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section-padding about-section" id="about">
+        <div class="container about-grid">
+            <div class="about-content reveal" style="transition-delay: 0.2s;">
+                <span class="accent-text">Our Mission</span>
+                <h2>Digitizing the Heart of Rural India</h2>
+                <p>Ekottam was built to solve the fragmentation of the Indian livestock market. By bridging the gap between rural farmers, FPOs, and buyers, we ensure fair pricing and direct trade without middlemen.</p>
+                <p>Designed specifically for rural entrepreneurs, our platform is simple, localized, and supported by nation-wide government schemes.</p>
+                
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <div class="feature-icon"><i data-lucide="shield-check"></i></div>
+                        <div class="feature-text">
+                            <h4>Trusted & Verified Profiles</h4>
+                            <p>Every buyer and seller is KYC-verified to ensure safe transactions.</p>
+                        </div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon"><i data-lucide="map-pin"></i></div>
+                        <div class="feature-text">
+                            <h4>Pan-India Logistics</h4>
+                            <p>Assistance with safe animal transport across all 28 states.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Government Schemes Section -->
+    <section class="section-padding schemes-section" id="schemes">
+        <div class="container">
+            <div class="section-header text-center reveal">
+                <span class="accent-text" style="color:var(--color-bg);">Financial Support</span>
+                <h2>Government Schemes</h2>
+                <p style="color:rgba(255,255,255,0.8);">Grow your farm with central and state government subsidies.</p>
+            </div>
+
+            <div class="schemes-grid">
+                <!-- Scheme 1 -->
+                <div class="scheme-card reveal">
+                    <i data-lucide="landmark" class="scheme-icon" width="32" height="32"></i>
+                    <h3>National Livestock Mission (NLM)</h3>
+                    <p>Avail up to 50% capital subsidy (up to ₹50 Lakhs) for rural poultry, sheep, goat, and piggery development.</p>
+                </div>
+                <!-- Scheme 2 -->
+                <div class="scheme-card reveal" style="transition-delay: 0.1s;">
+                    <i data-lucide="award" class="scheme-icon" width="32" height="32"></i>
+                    <h3>Rashtriya Gokul Mission (RGM)</h3>
+                    <p>₹3,400 Crore scheme focusing on development and conservation of indigenous bovine breeds.</p>
+                </div>
+                <!-- Scheme 3 -->
+                <div class="scheme-card reveal" style="transition-delay: 0.2s;">
+                    <i data-lucide="building-2" class="scheme-icon" width="32" height="32"></i>
+                    <h3>NABARD DEDS</h3>
+                    <p>Dairy Entrepreneurship Development Scheme offering 25–33% back-ended capital subsidy for bankable dairy projects.</p>
+                </div>
+                <!-- Scheme 4 -->
+                <div class="scheme-card reveal">
+                    <i data-lucide="milestone" class="scheme-icon" width="32" height="32"></i>
+                    <h3>National Programme for Dairy Development</h3>
+                    <p>₹2,790 Crore outlay to create and strengthen dairy infrastructure at the grassroots level.</p>
+                </div>
+                <!-- Scheme 5 -->
+                <div class="scheme-card reveal" style="transition-delay: 0.1s;">
+                    <i data-lucide="trending-up" class="scheme-icon" width="32" height="32"></i>
+                    <h3>Animal Husbandry ID Fund (AHIDF)</h3>
+                    <p>₹15,000 Crore fund offering 3% interest subvention for infrastructure investments.</p>
+                </div>
+                <!-- Scheme 6 -->
+                <div class="scheme-card reveal" style="transition-delay: 0.2s;">
+                    <i data-lucide="credit-card" class="scheme-icon" width="32" height="32"></i>
+                    <h3>PM Kisan Credit Card (KCC)</h3>
+                    <p>Working capital loans for livestock farmers with interest subvention resulting in an effective rate of just 4%.</p>
+                </div>
+                <!-- Scheme 7 -->
+                <div class="scheme-card reveal">
+                    <i data-lucide="shield" class="scheme-icon" width="32" height="32"></i>
+                    <h3>PM Livestock Insurance</h3>
+                    <p>Protection against animal death with 50–70% premium subsidy provided by the government.</p>
+                </div>
+                <!-- Scheme 8 -->
+                <div class="scheme-card reveal" style="transition-delay: 0.1s;">
+                    <i data-lucide="coins" class="scheme-icon" width="32" height="32"></i>
+                    <h3>Poultry Venture Capital</h3>
+                    <p>Financial assistance and back-ended subsidies up to ₹25 Lakh for encouraging poultry farming.</p>
+                </div>
+                <!-- Scheme 9 -->
+                <div class="scheme-card reveal" style="transition-delay: 0.2s;">
+                    <i data-lucide="map" class="scheme-icon" width="32" height="32"></i>
+                    <h3>State-Level Schemes</h3>
+                    <p>Additional localized benefits in states like Telangana (Sheep distribution), AP, Maharashtra, and Rajasthan.</p>
+                </div>
+            </div>
+            
+            <div class="scheme-note reveal">
+                <i data-lucide="info" width="24" height="24" style="color:var(--color-accent);"></i>
+                <p><strong>How to Apply:</strong> Register on the <a href="https://nlm.dahd.gov.in" target="_blank">official NLM portal (nlm.dahd.gov.in)</a> or visit your nearest NABARD nodal commercial bank branch for processing.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="section-padding workflow-section" id="how-it-works">
+        <div class="container">
+            <div class="section-header text-center reveal">
+                <span class="accent-text">Simple Process</span>
+                <h2>How Ekottam Works</h2>
+            </div>
+
+            <div class="steps-container reveal">
+                <div class="steps-line"></div>
+                
+                <div class="step-item">
+                    <div class="step-icon"><i data-lucide="user-plus" width="32" height="32"></i></div>
+                    <h3>1. Register & Verify</h3>
+                    <p>Create a free account and complete standard KYC to build trust.</p>
+                </div>
+                
+                <div class="step-item" style="transition-delay: 0.1s;">
+                    <div class="step-icon"><i data-lucide="upload-cloud" width="32" height="32"></i></div>
+                    <h3>2. List Animal</h3>
+                    <p>Upload photos, breed details, health records, and your expected price.</p>
+                </div>
+                
+                <div class="step-item" style="transition-delay: 0.2s;">
+                    <div class="step-icon"><i data-lucide="message-square" width="32" height="32"></i></div>
+                    <h3>3. Connect & Negotiate</h3>
+                    <p>Buyers contact you directly via call or secure chat to discuss terms.</p>
+                </div>
+                
+                <div class="step-item" style="transition-delay: 0.3s;">
+                    <div class="step-icon"><i data-lucide="truck" width="32" height="32"></i></div>
+                    <h3>4. Safe Delivery</h3>
+                    <p>Payment is secured and transport logistics are arranged seamlessly.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Ekottam -->
+    <section class="section-padding why-section" id="why">
+        <div class="container why-grid">
+            <div class="why-content reveal">
+                <span class="accent-text">The Impact</span>
+                <h2 style="margin-bottom: 2rem;">Why Choose Ekottam?</h2>
+                
+                <div class="why-reasons">
+                    <div class="reason-item">
+                        <span class="reason-num">01</span>
+                        <div class="reason-text">
+                            <h4>Zero Middleman Commission</h4>
+                            <p>Sell directly to end-buyers. You keep 100% of the negotiated price.</p>
+                        </div>
+                    </div>
+                    <div class="reason-item">
+                        <span class="reason-num">02</span>
+                        <div class="reason-text">
+                            <h4>Health Verification Protocol</h4>
+                            <p>Partnered with local vets to certify the health profile of premium animals.</p>
+                        </div>
+                    </div>
+                    <div class="reason-item">
+                        <span class="reason-num">03</span>
+                        <div class="reason-text">
+                            <h4>Multilingual Support</h4>
+                            <p>App available in Hindi, Telugu, Marathi, and 8 other regional languages.</p>
+                        </div>
+                    </div>
+                    <div class="reason-item">
+                        <span class="reason-num">04</span>
+                        <div class="reason-text">
+                            <h4>Market Price Intelligence</h4>
+                            <p>Real-time analytics tool helps you price your livestock competitively.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="why-stats-box reveal" style="transition-delay: 0.2s;">
+                <h3 style="color: white; margin-bottom: 1rem; font-family: var(--font-body);">India's Livestock Potential</h3>
+                <div class="large-stat">₹6L Cr+</div>
+                <p>Annual contribution to National GDP</p>
+                
+                <div class="why-stats-list">
+                    <div class="w-stat-item">
+                        <span>Total Livestock Pop.</span>
+                        <strong>500M+</strong>
+                    </div>
+                    <div class="w-stat-item">
+                        <span>Rural Dependency</span>
+                        <strong>70% HHs</strong>
+                    </div>
+                    <div class="w-stat-item">
+                        <span>Global Ranking (Milk)</span>
+                        <strong>#1</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="section-padding testimonials" id="testimonials">
+        <div class="container">
+            <div class="section-header text-center reveal">
+                <span class="accent-text">Success Stories</span>
+                <h2>What Our Farmers Say</h2>
+            </div>
+
+            <div class="test-grid">
+                <!-- Test 1 -->
+                <div class="test-card reveal">
+                    <i data-lucide="quote" class="quote-icon"></i>
+                    <p class="test-text">"Before Ekottam, I had to travel 100km to the weekly mandi and still didn't get a fair price. I sold two Murrah buffaloes through the app at 20% higher profits directly to a dairy in Pune."</p>
+                    <div class="test-author">
+                        <div class="author-info">
+                            <h4>Rajesh Rao</h4>
+                            <span>Nizamabad, Telangana</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Test 2 -->
+                <div class="test-card reveal" style="transition-delay: 0.15s;">
+                    <i data-lucide="quote" class="quote-icon"></i>
+                    <p class="test-text">"I applied for the NLM poultry subsidy after reading about it on Ekottam's scheme section. They even connected me with a consultant. Today, I have a 5,000-bird setup."</p>
+                    <div class="test-author">
+                        <div class="author-info">
+                            <h4>Santosh Patil</h4>
+                            <span>Kolhapur, Maharashtra</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Test 3 -->
+                <div class="test-card reveal" style="transition-delay: 0.3s;">
+                    <i data-lucide="quote" class="quote-icon"></i>
+                    <p class="test-text">"Their buyer verification gave me peace of mind. Sold my Nellore sheep flock safely, and the payment was instant. The app is incredibly easy to use."</p>
+                    <div class="test-author">
+                        <div class="author-info">
+                            <h4>K. Venkata</h4>
+                            <span>Guntur, Andhra Pradesh</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Form Section -->
+    <section class="section-padding contact-section" id="contact">
+        <div class="container">
+            <div class="section-header text-center reveal">
+                <span class="accent-text">Get in Touch</span>
+                <h2>Contact Us</h2>
+                <p>Fill out the form below and our team will get back to you shortly.</p>
+            </div>
+            
+            <div class="contact-form-wrapper reveal" style="transition-delay: 0.2s;">
+                <form class="ekottam-form" action="https://formsubmit.co/ekottam.livestock@gmail.com" method="POST">
+                    
+                    <!-- FormSubmit Configuration -->
+                    <input type="hidden" name="_subject" value="New Lead from Ekottam Website!">
+                    <input type="hidden" name="_template" value="table">
+                    
+                    <!-- To redirect back to the site after submission -->
+                    <input type="hidden" name="_next" value="https://www.ekottam.in">
+
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" placeholder="Enter your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="mobile">Mobile Number</label>
+                        <input type="tel" id="mobile" name="mobile" placeholder="Enter your 10-digit mobile number" pattern="[0-9]{10}" title="10-digit mobile number starting from 0 to 9" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <textarea id="address" name="address" rows="4" placeholder="Enter your complete address" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary submit-btn">Submit Details</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section reveal" id="cta">
+        <div class="container cta-content">
+            <h2>Ready to Modernize Your Livestock Business?</h2>
+            <p>Join over 12,000 farmers who trust Ekottam across India. Download the app today or get in touch for enterprise requirements.</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn btn-primary" style="font-size: 1.1rem; padding: 1rem 2rem;">Post Ad for Free</button>
+                <button class="btn btn-outline" style="font-size: 1.1rem; padding: 1rem 2rem;">Contact Sales</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Strip -->
+    <div class="contact-strip">
+        <div class="container strip-container">
+            <a href="tel:+919391609598" class="strip-item">
+                <i data-lucide="phone"></i> +91 93916 09598
+            </a>
+            <a href="mailto:info@ekottam.in" class="strip-item">
+                <i data-lucide="mail"></i> info@ekottam.in
+            </a>
+            <a href="https://www.ekottam.in" target="_blank" class="strip-item">
+                <i data-lucide="globe"></i> www.ekottam.in
+            </a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <span style="font-size: 2rem;">EKOTTAM</span>
+                    </a>
+                    <p>Pan-India platform to buy and sell all kinds of livestock. Empowering rural entrepreneurs through technology.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-btn"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#" class="social-btn"><i class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#" class="social-btn"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#" class="social-btn"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <div class="footer-links">
+                        <a href="#about">About Us</a>
+                        <a href="#schemes">Government Schemes</a>
+                        <a href="#testimonials">Success Stories</a>
+                    </div>
+                </div>
+                
+                <div class="footer-col">
+                    <h4>Support</h4>
+                    <div class="footer-links">
+                        <a href="#">Help Center</a>
+                        <a href="#">Trust & Safety</a>
+                        <a href="#">Transport Assistance</a>
+                        <a href="#">Veterinary Partners</a>
+                    </div>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Legal</h4>
+                    <div class="footer-links">
+                        <a href="#">Terms of Service</a>
+                        <a href="#">Privacy Policy</a>
+                        <a href="#">Refund Policy</a>
+                        <a href="#">Fraud Prevention</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; <span id="year"></span> Ekottam (National Live Stock). All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Floating WhatsApp -->
+    <a href="https://wa.me/919391609598" target="_blank" class="wa-float" aria-label="Chat on WhatsApp">
+        <i class="fa-brands fa-whatsapp"></i>
+    </a>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
