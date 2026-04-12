@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast'
 import Script from 'next/script'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import ErrorSuppressor from '@/components/ErrorSuppressor'
 
 export const metadata = {
   metadataBase: new URL('https://ekottam.vercel.app'),
@@ -36,6 +37,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en-IN" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
+        <ErrorSuppressor />
         <Navbar />
         <main className="flex-1 pt-16">
           {children}
