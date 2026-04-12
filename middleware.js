@@ -1,19 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
-// Use Node.js runtime instead of Edge to avoid @supabase/ssr Edge incompatibilities
-export const runtime = 'nodejs'
-
 export async function middleware(request) {
-  // Fail-safe: if env vars are missing, allow all requests through
+  // Fail-safe: if basics are missing, allow request through
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Middleware: Supabase env vars missing, allowing request through')
     return NextResponse.next()
   }
 
+  // Initial response
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -42,7 +39,10 @@ export async function middleware(request) {
       }
     )
 
-    const { data: { user } } = await supabase.auth.getUser()
+    // IMPORTANT: getUser() must be called to refresh the session if needed
+    // This is the most likely spot for an error if things are misconfigured
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
     const pathname = request.nextUrl.pathname
 
     // Public routes — no auth needed
@@ -59,8 +59,8 @@ export async function middleware(request) {
 
     if (!isProtectedRoute) return supabaseResponse
 
-    // No user — redirect to home
-    if (!user) {
+    // No user or auth error — redirect to home
+    if (!user || authError) {
       const redirectUrl = new URL('/', request.url)
       redirectUrl.searchParams.set('error', 'unauthorized')
       redirectUrl.searchParams.set('message', 'Please sign in to continue')
@@ -68,13 +68,13 @@ export async function middleware(request) {
     }
 
     // Get user profile for role-based access
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, seller_status')
       .eq('id', user.id)
       .single()
 
-    if (!profile) {
+    if (profileError || !profile) {
       const redirectUrl = new URL('/', request.url)
       redirectUrl.searchParams.set('error', 'unauthorized')
       redirectUrl.searchParams.set('message', 'Profile not found')
@@ -107,10 +107,9 @@ export async function middleware(request) {
       }
     }
 
-  } catch (error) {
-    // If middleware crashes for any reason, fail open (allow request)
-    // This prevents a single Supabase hiccup from taking down the entire site
-    console.error('Middleware error:', error?.message || error)
+  } catch (err) {
+    // If anything fails, we log it and fail-open to avoid 500
+    console.error('CRITICAL: Middleware error caught:', err)
     return NextResponse.next()
   }
 
