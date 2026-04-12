@@ -12,9 +12,7 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }) {
   const router = useRouter()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
+    const checkAuth = async (session) => {
       if (!session) {
         toast.error('Please sign in to continue')
         router.push('/')
@@ -54,7 +52,14 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }) {
       setLoading(false)
     }
 
-    checkAuth()
+    // Use onAuthStateChange to wait for auth to settle after OAuth redirect
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        checkAuth(session)
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [requiredRole, router])
 
   if (loading) {

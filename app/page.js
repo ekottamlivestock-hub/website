@@ -62,12 +62,8 @@ function HomePageContent() {
   }, [searchParams])
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (session) => {
       setLoading(true)
-      
-      // Get session
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user || null)
 
       // Fetch categories
       const { data: cats } = await supabase
@@ -98,11 +94,24 @@ function HomePageContent() {
           .select('listing_id')
           .eq('user_id', session.user.id)
         setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
+      } else {
+        setWishlistedIds([])
       }
 
       setLoading(false)
     }
-    fetchData()
+
+    // Listen for auth state changes — this fires with INITIAL_SESSION on load
+    // and SIGNED_IN after OAuth redirect, ensuring data is fetched only after
+    // the auth state has fully settled.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user || null)
+        fetchData(session)
+      }
+    )
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return (

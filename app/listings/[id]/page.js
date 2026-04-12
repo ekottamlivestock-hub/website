@@ -37,20 +37,18 @@ export default function ListingDetailPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    const fetchData = async () => {
+    let cancelled = false
+
+    const fetchData = async (currentUser) => {
       setLoading(true)
 
-      // Session
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user || null)
-
-      if (session?.user) {
+      if (currentUser) {
         const { data: prof } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('id', currentUser.id)
           .single()
-        setProfile(prof)
+        if (!cancelled) setProfile(prof)
       }
 
       // Listing
@@ -64,6 +62,8 @@ export default function ListingDetailPage() {
         `)
         .eq('id', id)
         .single()
+
+      if (cancelled) return
 
       if (error || !listingData) {
         toast.error('Listing not found')
@@ -80,27 +80,27 @@ export default function ListingDetailPage() {
         .select('*')
         .eq('listing_id', id)
         .order('sort_order')
-      setMedia(mediaData || [])
+      if (!cancelled) setMedia(mediaData || [])
 
       // Seller rating
       const { data: reviews } = await supabase
         .from('reviews')
         .select('rating')
         .eq('reviewee_id', listingData.seller_id)
-      if (reviews && reviews.length > 0) {
+      if (!cancelled && reviews && reviews.length > 0) {
         const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
         setSellerRating({ avg: avg.toFixed(1), count: reviews.length })
       }
 
       // Wishlist check
-      if (session?.user) {
+      if (currentUser) {
         const { data: wl } = await supabase
           .from('wishlists')
           .select('id')
-          .eq('user_id', session.user.id)
+          .eq('user_id', currentUser.id)
           .eq('listing_id', id)
           .maybeSingle()
-        setWishlisted(!!wl)
+        if (!cancelled) setWishlisted(!!wl)
       }
 
       // Similar listings
@@ -116,7 +116,7 @@ export default function ListingDetailPage() {
         .eq('status', 'approved')
         .neq('id', id)
         .limit(4)
-      setSimilarListings(similar || [])
+      if (!cancelled) setSimilarListings(similar || [])
 
       // Increment view count
       await supabase.rpc('increment_view_count', { listing_id: id }).catch(() => {
@@ -128,9 +128,23 @@ export default function ListingDetailPage() {
           .then()
       })
 
-      setLoading(false)
+      if (!cancelled) setLoading(false)
     }
-    fetchData()
+
+    // Listen for auth state changes — fires INITIAL_SESSION on load,
+    // SIGNED_IN after OAuth redirect. Ensures data loads after auth settles.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (cancelled) return
+        setUser(session?.user || null)
+        fetchData(session?.user || null)
+      }
+    )
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [id, router])
 
   const toggleWishlist = async () => {

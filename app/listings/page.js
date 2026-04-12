@@ -88,14 +88,25 @@ function ListingsContent() {
     fetchBreeds()
   }, [filters.category, categories])
 
-  // Fetch listings
+  // Track auth session via onAuthStateChange (resolves race condition after OAuth redirect)
+  const [sessionReady, setSessionReady] = useState(false)
+
   useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user || null)
+        setSessionReady(true)
+      }
+    )
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Fetch listings — only runs after session state has settled
+  useEffect(() => {
+    if (!sessionReady) return
+
     const fetchListings = async () => {
       setLoading(true)
-
-      // Session
-      const { data: { session } } = await supabase.auth.getSession()
-      setUser(session?.user || null)
 
       let query = supabase
         .from('listings')
@@ -158,18 +169,20 @@ function ListingsContent() {
       setTotalCount(count || 0)
 
       // Wishlists
-      if (session?.user) {
+      if (user) {
         const { data: wishlist } = await supabase
           .from('wishlists')
           .select('listing_id')
-          .eq('user_id', session.user.id)
+          .eq('user_id', user.id)
         setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
+      } else {
+        setWishlistedIds([])
       }
 
       setLoading(false)
     }
     fetchListings()
-  }, [searchParams, categories, filters.breed, filters.category, filters.city, filters.gender, filters.health, filters.maxPrice, filters.minPrice, filters.page, filters.q, filters.sort, filters.state])
+  }, [sessionReady, user, searchParams, categories, filters.breed, filters.category, filters.city, filters.gender, filters.health, filters.maxPrice, filters.minPrice, filters.page, filters.q, filters.sort, filters.state])
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
   const hasActiveFilters = Object.entries(filters).some(([key, val]) => 
