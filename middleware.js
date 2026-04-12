@@ -1,9 +1,12 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
   // Fail-safe: if env vars are missing, allow all requests through
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Middleware: Supabase env vars missing, allowing request through')
     return NextResponse.next()
   }
 
@@ -12,9 +15,12 @@ export async function middleware(request) {
   })
 
   try {
+    // Dynamic import to prevent module-level crashes in Edge runtime
+    const { createServerClient } = await import('@supabase/ssr')
+
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl,
+      supabaseAnonKey,
       {
         cookies: {
           get(name) {
@@ -106,7 +112,7 @@ export async function middleware(request) {
   } catch (error) {
     // If middleware crashes for any reason, fail open (allow request)
     // This prevents a single Supabase hiccup from taking down the entire site
-    console.error('Middleware error:', error.message)
+    console.error('Middleware error:', error?.message || error)
     return NextResponse.next()
   }
 
