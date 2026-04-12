@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request) {
@@ -15,24 +14,9 @@ export async function GET(request) {
   }
 
   if (code) {
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          get(name) {
-            return cookieStore.get(name)?.value
-          },
-          set(name, value, options) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name, options) {
-            cookieStore.delete(name)
-          },
-        },
-      }
-    )
+    // Correctly instantiate the powerful SSR server client that correctly handles 
+    // getAll and setAll cookie writing across @supabase/ssr
+    const supabase = createClient()
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
