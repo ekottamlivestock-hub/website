@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase-server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request) {
@@ -6,7 +7,11 @@ export async function GET(request) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
   
-  // If Supabase sends an error back directly in the callback URL parameters
+  // Create the final response object first so we can securely attach cookies directly to it.
+  // Next.js Route Handlers occasionally drop cookies() queues if a new NextResponse is created later.
+  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/'
+  const response = NextResponse.redirect(`${origin}${safeNext}`)
+
   const errorParam = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
   if (errorParam || errorDescription) {
@@ -14,21 +19,36 @@ export async function GET(request) {
   }
 
   if (code) {
-    // Correctly instantiate the powerful SSR server client that correctly handles 
-    // getAll and setAll cookie writing across @supabase/ssr
-    const supabase = createClient()
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Attach to Next.js cookie store
+              cookieStore.set({ name, value, ...options })
+              // Also strictly attach directly to the outbound redirect response
+              response.cookies.set({ name, value, ...options })
+            })
+          },
+        },
+      }
+    )
 
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/'
-      return NextResponse.redirect(`${origin}${safeNext}`)
+      // Returns the response that has the strictly attached cookies
+      return response
     } else {
-      // Pass the specific error message to the frontend
       return NextResponse.redirect(`${origin}/?error=auth_failed&message=${encodeURIComponent(error.message)}`)
     }
   }
 
-  // Handle generic missing code error
   return NextResponse.redirect(`${origin}/?error=auth_failed&message=No+auth+code+provided`)
 }
