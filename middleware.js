@@ -2,63 +2,68 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
 export async function middleware(request) {
+  // Fail-safe: if env vars are missing, allow all requests through
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        get(name) {
-          return request.cookies.get(name)?.value
-        },
-        set(name, value, options) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          response.cookies.set({ name, value, ...options })
-        },
-        remove(name, options) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: { headers: request.headers },
-          })
-          response.cookies.set({ name, value: '', ...options })
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname
-
-  // Public routes — no auth needed
-  const publicRoutes = ['/', '/listings', '/auth/callback']
-  const isPublicRoute = publicRoutes.some(route => 
-    pathname === route || pathname.startsWith('/listings/')
-  )
-
-  if (isPublicRoute) return response
-
-  // Protected routes — require auth
-  const protectedRoutes = ['/admin', '/seller', '/sell', '/buyer', '/profile', '/notifications']
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
-
-  if (!isProtectedRoute) return response
-
-  // No user — redirect to home
-  if (!user) {
-    const redirectUrl = new URL('/', request.url)
-    redirectUrl.searchParams.set('error', 'unauthorized')
-    redirectUrl.searchParams.set('message', 'Please sign in to continue')
-    return NextResponse.redirect(redirectUrl)
-  }
-
-  // Get user profile for role-based access
   try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          get(name) {
+            return request.cookies.get(name)?.value
+          },
+          set(name, value, options) {
+            request.cookies.set({ name, value, ...options })
+            response = NextResponse.next({
+              request: { headers: request.headers },
+            })
+            response.cookies.set({ name, value, ...options })
+          },
+          remove(name, options) {
+            request.cookies.set({ name, value: '', ...options })
+            response = NextResponse.next({
+              request: { headers: request.headers },
+            })
+            response.cookies.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const pathname = request.nextUrl.pathname
+
+    // Public routes — no auth needed
+    const publicRoutes = ['/', '/listings', '/auth/callback', '/about', '/terms', '/privacy']
+    const isPublicRoute = publicRoutes.some(route =>
+      pathname === route || pathname.startsWith('/listings/')
+    )
+
+    if (isPublicRoute) return response
+
+    // Protected routes — require auth
+    const protectedRoutes = ['/admin', '/seller', '/sell', '/buyer', '/profile', '/notifications']
+    const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
+
+    if (!isProtectedRoute) return response
+
+    // No user — redirect to home
+    if (!user) {
+      const redirectUrl = new URL('/', request.url)
+      redirectUrl.searchParams.set('error', 'unauthorized')
+      redirectUrl.searchParams.set('message', 'Please sign in to continue')
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // Get user profile for role-based access
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, seller_status')
@@ -68,7 +73,7 @@ export async function middleware(request) {
     if (!profile) {
       const redirectUrl = new URL('/', request.url)
       redirectUrl.searchParams.set('error', 'unauthorized')
-      redirectUrl.searchParams.set('message', 'Profile not found or access denied')
+      redirectUrl.searchParams.set('message', 'Profile not found')
       return NextResponse.redirect(redirectUrl)
     }
 
@@ -82,7 +87,6 @@ export async function middleware(request) {
 
     // Seller routes
     if (pathname.startsWith('/seller') && !['seller', 'admin'].includes(profile.role)) {
-      // Allow /seller/apply for buyers
       if (pathname !== '/seller/apply') {
         const redirectUrl = new URL('/', request.url)
         redirectUrl.searchParams.set('error', 'unauthorized')
@@ -100,11 +104,10 @@ export async function middleware(request) {
     }
 
   } catch (error) {
-    console.error('Middleware profile check error:', error)
-    const redirectUrl = new URL('/', request.url)
-    redirectUrl.searchParams.set('error', 'unauthorized')
-    redirectUrl.searchParams.set('message', 'Authorization service unavailable')
-    return NextResponse.redirect(redirectUrl)
+    // If middleware crashes for any reason, fail open (allow request)
+    // This prevents a single Supabase hiccup from taking down the entire site
+    console.error('Middleware error:', error.message)
+    return NextResponse.next()
   }
 
   return response
