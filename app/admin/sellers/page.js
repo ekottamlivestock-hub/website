@@ -31,7 +31,7 @@ function SellersContent() {
     setLoading(true)
     const { data } = await supabase
       .from('seller_applications')
-      .select('*, profiles(full_name, avatar_url, phone)')
+      .select('*, profiles!seller_applications_user_id_fkey(full_name, avatar_url, phone)')
       .eq('status', tab)
       .order('created_at', { ascending: false })
     setApplications(data || [])
