@@ -1,4 +1,8 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
+
+// Use Node.js runtime instead of Edge to avoid @supabase/ssr Edge incompatibilities
+export const runtime = 'nodejs'
 
 export async function middleware(request) {
   // Fail-safe: if env vars are missing, allow all requests through
@@ -10,35 +14,29 @@ export async function middleware(request) {
     return NextResponse.next()
   }
 
-  let response = NextResponse.next({
-    request: { headers: request.headers },
+  let supabaseResponse = NextResponse.next({
+    request,
   })
 
   try {
-    // Dynamic import to prevent module-level crashes in Edge runtime
-    const { createServerClient } = await import('@supabase/ssr')
-
     const supabase = createServerClient(
       supabaseUrl,
       supabaseAnonKey,
       {
         cookies: {
-          get(name) {
-            return request.cookies.get(name)?.value
+          getAll() {
+            return request.cookies.getAll()
           },
-          set(name, value, options) {
-            request.cookies.set({ name, value, ...options })
-            response = NextResponse.next({
-              request: { headers: request.headers },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            )
+            supabaseResponse = NextResponse.next({
+              request,
             })
-            response.cookies.set({ name, value, ...options })
-          },
-          remove(name, options) {
-            request.cookies.set({ name, value: '', ...options })
-            response = NextResponse.next({
-              request: { headers: request.headers },
-            })
-            response.cookies.set({ name, value: '', ...options })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
           },
         },
       }
@@ -53,13 +51,13 @@ export async function middleware(request) {
       pathname === route || pathname.startsWith('/listings/')
     )
 
-    if (isPublicRoute) return response
+    if (isPublicRoute) return supabaseResponse
 
     // Protected routes — require auth
     const protectedRoutes = ['/admin', '/seller', '/sell', '/buyer', '/profile', '/notifications']
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
-    if (!isProtectedRoute) return response
+    if (!isProtectedRoute) return supabaseResponse
 
     // No user — redirect to home
     if (!user) {
@@ -103,7 +101,7 @@ export async function middleware(request) {
 
     // Sell page — requires approved seller
     if (pathname === '/sell') {
-      if (profile.role === 'admin') return response
+      if (profile.role === 'admin') return supabaseResponse
       if (profile.seller_status !== 'approved') {
         return NextResponse.redirect(new URL('/seller/apply', request.url))
       }
@@ -116,7 +114,7 @@ export async function middleware(request) {
     return NextResponse.next()
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {
