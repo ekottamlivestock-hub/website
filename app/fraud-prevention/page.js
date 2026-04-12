@@ -18,7 +18,7 @@ export default function FraudPreventionPage() {
         <p>If an offer seems too good to be true, it likely is. Cross-reference the asking price with average market rates.</p>
 
         <h2>3. Verify Seller Identity</h2>
-        <p>Ensure you are dealing with a KYC-verified seller. Look for the "Verified" badge on their profile and listing. Do not trust sellers who refuse to share additional photos or video calls.</p>
+        <p>Ensure you are dealing with a KYC-verified seller. Look for the &quot;Verified&quot; badge on their profile and listing. Do not trust sellers who refuse to share additional photos or video calls.</p>
 
         <h2>4. Report Suspicious Activity</h2>
         <p>If a seller insists on advance payments via UPI external to our procedures or asks for OTPs, immediately stop communicating and report them.</p>
