@@ -2,24 +2,26 @@ import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase-server'
 
-webpush.setVapidDetails(
-  'mailto:info@ekottam.in',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-)
-
-// We need the service role key to bypass RLS and read push_subscriptions for targeting users
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-if (!supabaseServiceKey) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured')
-}
-
-// Service role client bypasses RLS
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
 export async function POST(req) {
+  // Initialize at request time (not build time) to avoid missing env var errors
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    return new Response(JSON.stringify({ error: 'Push notifications are not configured (missing VAPID keys)' }), { status: 503 })
+  }
+
+  if (!supabaseServiceKey) {
+    return new Response(JSON.stringify({ error: 'Server configuration error (missing service role key)' }), { status: 503 })
+  }
+
+  webpush.setVapidDetails('mailto:info@ekottam.in', vapidPublicKey, vapidPrivateKey)
+
+  // Service role client bypasses RLS
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+
   try {
     // Authenticate the caller using the server-side client
     const supabaseAuth = createServerClient()
