@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    @apply bg-surface-50 text-stone-800 font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-primary-200 text-primary-900;
+  }
+}
+
+@layer components {
+  /* Skeleton loading animation */
+  .skeleton {
+    @apply bg-stone-200 rounded-lg animate-skeleton;
+  }
+
+  /* Custom scrollbar */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Thin scrollbar */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-stone-300 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-stone-400;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-lg border border-white/20;
+  }
+
+  /* Card hover lift */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  /* Status dot pulse */
+  .status-dot {
+    @apply relative;
+  }
+  .status-dot::after {
+    content: '';
+    @apply absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full;
+    animation: statusPulse 2s ease-in-out infinite;
+  }
+
+  /* Page container */
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6;
+  }
+
+  /* Section header */
+  .section-heading {
+    @apply text-2xl sm:text-3xl font-bold text-stone-900;
+  }
+
+  /* Input styling */
+  .input-field {
+    @apply w-full px-4 py-3 bg-white border border-stone-200 rounded-xl text-stone-800
+    placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-500 
+    focus:border-transparent transition-all duration-200;
+  }
+
+  .input-label {
+    @apply block text-sm font-medium text-stone-700 mb-1.5;
+  }
+
+  /* Button variants */
+  .btn-primary {
+    @apply bg-primary-600 text-white px-6 py-3 rounded-full font-semibold
+    hover:bg-primary-700 active:bg-primary-800 transition-all duration-200
+    shadow-md shadow-primary-600/20 hover:shadow-lg hover:shadow-primary-600/30
+    disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary-500 text-white px-6 py-3 rounded-full font-semibold
+    hover:bg-secondary-600 active:bg-secondary-700 transition-all duration-200
+    shadow-md shadow-secondary-500/20;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary-600 text-primary-600 px-6 py-3 rounded-full font-semibold
+    hover:bg-primary-50 active:bg-primary-100 transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply text-stone-600 px-4 py-2 rounded-xl font-medium
+    hover:bg-stone-100 active:bg-stone-200 transition-all duration-200;
+  }
+
+  .btn-danger {
+    @apply bg-red-500 text-white px-6 py-3 rounded-full font-semibold
+    hover:bg-red-600 active:bg-red-700 transition-all duration-200;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Toast overrides */
+.toast-custom {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  font-size: 0.875rem !important;
+  border-radius: 1rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+/* Status pulse keyframe */
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+}
+
+/* Bottom sheet animation for mobile filters */
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.bottom-sheet-enter {
+  animation: slideUpSheet 0.3s ease-out;
+}
+
+/* Hide Google Translate UI elements */
+.goog-te-banner-frame.skiptranslate { display: none !important; }
+body { top: 0px !important; }
+.goog-te-gadget-icon { display: none; }
+.goog-te-gadget-simple { background-color: transparent !important; border: none !important; font-size: 0px !important; }
+.goog-te-gadget-simple .goog-te-menu-value { display: none !important; }
+#google_translate_element { display: none; }
+.skiptranslate.goog-te-gadget { display: none; }
+
