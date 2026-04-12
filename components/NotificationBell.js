@@ -28,13 +28,13 @@ export default function NotificationBell({ userId }) {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          setUnreadCount((prev) => prev + 1)
+          fetchCount()
         }
       )
       .subscribe()
