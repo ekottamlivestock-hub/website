@@ -22,6 +22,15 @@ export default function NotificationBell({ userId }) {
     }
     fetchCount()
 
+    // Create a debounce to prevent network spam if many notifications are updated at once
+    let debounceTimer;
+    const debouncedFetchCount = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        fetchCount();
+      }, 500);
+    };
+
     // Subscribe to realtime notifications
     const channel = supabase
       .channel('notifications')
@@ -34,12 +43,15 @@ export default function NotificationBell({ userId }) {
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          fetchCount()
+          debouncedFetchCount()
         }
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => { 
+      clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    }
   }, [userId])
 
   return (
