@@ -29,12 +29,15 @@ export async function GET(request) {
             return cookieStore.getAll()
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              // Attach to Next.js cookie store
-              cookieStore.set({ name, value, ...options })
-              // Also strictly attach directly to the outbound redirect response
-              response.cookies.set({ name, value, ...options })
-            })
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options)
+              })
+            } catch (error) {
+              // The `setAll` method was called from a Server Component.
+              // This can be ignored if you have middleware refreshing
+              // user sessions.
+            }
           },
         },
       }
@@ -43,8 +46,7 @@ export async function GET(request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Returns the response that has the strictly attached cookies
-      return response
+      return NextResponse.redirect(`${origin}${safeNext}`)
     } else {
       return NextResponse.redirect(`${origin}/?error=auth_failed&message=${encodeURIComponent(error.message)}`)
     }
