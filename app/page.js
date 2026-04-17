@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
@@ -34,6 +34,7 @@ function HomePageContent() {
   const [wishlistedIds, setWishlistedIds] = useState([])
   const [heroIndex, setHeroIndex] = useState(0)
   const searchParams = useSearchParams()
+  const hasFetchedRef = React.useRef(false)
 
   const heroImages = [
     '/images/1.jpg',
@@ -62,52 +63,74 @@ function HomePageContent() {
   }, [searchParams])
 
   useEffect(() => {
-    const fetchData = async (session) => {
-      setLoading(true)
+    // Fetch categories and listings — these are public and don't depend on auth
+    const fetchPublicData = async () => {
+      try {
+        // Fetch categories
+        const { data: cats, error: catsError } = await supabase
+          .from('animal_categories')
+          .select('*')
+          .eq('is_active', true)
+          .order('name')
+        if (catsError) console.error('Failed to fetch categories:', catsError)
+        setCategories(cats || [])
 
-      // Fetch categories
-      const { data: cats } = await supabase
-        .from('animal_categories')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
-      setCategories(cats || [])
-
-      // Fetch featured listings
-      const { data: listings } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          animal_categories (name, slug),
-          profiles (full_name, avatar_url),
-          listing_media (url, sort_order)
-        `)
-        .eq('status', 'approved')
-        .order('created_at', { ascending: false })
-        .limit(8)
-      setFeaturedListings(listings || [])
-
-      // Fetch wishlist IDs
-      if (session?.user) {
-        const { data: wishlist } = await supabase
-          .from('wishlists')
-          .select('listing_id')
-          .eq('user_id', session.user.id)
-        setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
-      } else {
-        setWishlistedIds([])
+        // Fetch featured listings
+        const { data: listings, error: listingsError } = await supabase
+          .from('listings')
+          .select(`
+            *,
+            animal_categories (name, slug),
+            profiles (full_name, avatar_url),
+            listing_media (url, sort_order)
+          `)
+          .eq('status', 'approved')
+          .order('created_at', { ascending: false })
+          .limit(8)
+        if (listingsError) console.error('Failed to fetch listings:', listingsError)
+        setFeaturedListings(listings || [])
+      } catch (err) {
+        console.error('Error fetching public data:', err)
+        toast.error('Failed to load data. Please refresh the page.')
+      } finally {
+        setLoading(false)
       }
+    }
 
-      setLoading(false)
+    // Fetch wishlists — depends on authenticated session
+    const fetchWishlist = async (session) => {
+      try {
+        if (session?.user) {
+          const { data: wishlist } = await supabase
+            .from('wishlists')
+            .select('listing_id')
+            .eq('user_id', session.user.id)
+          setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
+        } else {
+          setWishlistedIds([])
+        }
+      } catch (err) {
+        console.error('Error fetching wishlist:', err)
+      }
     }
 
     // Listen for auth state changes — this fires with INITIAL_SESSION on load
-    // and SIGNED_IN after OAuth redirect, ensuring data is fetched only after
-    // the auth state has fully settled.
+    // and SIGNED_IN after OAuth redirect.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user || null)
-        fetchData(session)
+
+        // Only fetch public data (categories, listings) ONCE on first load.
+        // Subsequent auth events (SIGNED_IN, TOKEN_REFRESHED) should NOT
+        // re-trigger public data fetches or show loading skeletons — that
+        // causes the "data disappears" flash during login.
+        if (!hasFetchedRef.current) {
+          hasFetchedRef.current = true
+          fetchPublicData()
+        }
+
+        // Always re-fetch wishlist when auth state changes
+        fetchWishlist(session)
       }
     )
 

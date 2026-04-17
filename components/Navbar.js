@@ -25,30 +25,20 @@ export default function Navbar() {
   const dropdownRef = useRef(null)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUser(session.user)
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        setProfile(data)
-      }
-    }
-    getUser()
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
           setUser(session.user)
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-          setProfile(data)
+          try {
+            const { data } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single()
+            setProfile(data)
+          } catch (err) {
+            console.error('Failed to fetch profile:', err)
+          }
         } else {
           setUser(null)
           setProfile(null)

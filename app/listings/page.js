@@ -108,78 +108,83 @@ function ListingsContent() {
     const fetchListings = async () => {
       setLoading(true)
 
-      let query = supabase
-        .from('listings')
-        .select(`
-          *,
-          animal_categories (name, slug),
-          profiles (full_name, avatar_url),
-          listing_media (url, sort_order)
-        `, { count: 'exact' })
-        .eq('status', 'approved')
+      try {
+        let query = supabase
+          .from('listings')
+          .select(`
+            *,
+            animal_categories (name, slug),
+            profiles (full_name, avatar_url),
+            listing_media (url, sort_order)
+          `, { count: 'exact' })
+          .eq('status', 'approved')
 
-      // Search
-      if (filters.q) {
-        query = query.or(`title.ilike.%${filters.q}%,description.ilike.%${filters.q}%`)
+        // Search
+        if (filters.q) {
+          query = query.or(`title.ilike.%${filters.q}%,description.ilike.%${filters.q}%`)
+        }
+
+        // Category
+        if (filters.category) {
+          const cat = categories.find(c => c.slug === filters.category)
+          if (cat) query = query.eq('category_id', cat.id)
+        }
+
+        // Breed
+        if (filters.breed) {
+          query = query.eq('breed_id', filters.breed)
+        }
+
+        // Price range
+        if (filters.minPrice) query = query.gte('price', parseInt(filters.minPrice))
+        if (filters.maxPrice) query = query.lte('price', parseInt(filters.maxPrice))
+
+        // Location
+        if (filters.state) query = query.ilike('state', `%${filters.state}%`)
+        if (filters.city) query = query.ilike('city', `%${filters.city}%`)
+
+        // Gender
+        if (filters.gender) query = query.eq('gender', filters.gender)
+
+        // Health
+        if (filters.health) query = query.eq('health_status', filters.health)
+
+        // Sort
+        switch (filters.sort) {
+          case 'price_asc':
+            query = query.order('price', { ascending: true })
+            break
+          case 'price_desc':
+            query = query.order('price', { ascending: false })
+            break
+          default:
+            query = query.order('created_at', { ascending: false })
+        }
+
+        // Pagination
+        const from = (filters.page - 1) * ITEMS_PER_PAGE
+        query = query.range(from, from + ITEMS_PER_PAGE - 1)
+
+        const { data, count, error } = await query
+        if (error) console.error('Failed to fetch listings:', error)
+        setListings(data || [])
+        setTotalCount(count || 0)
+
+        // Wishlists
+        if (user) {
+          const { data: wishlist } = await supabase
+            .from('wishlists')
+            .select('listing_id')
+            .eq('user_id', user.id)
+          setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
+        } else {
+          setWishlistedIds([])
+        }
+      } catch (err) {
+        console.error('Error fetching listings:', err)
+      } finally {
+        setLoading(false)
       }
-
-      // Category
-      if (filters.category) {
-        const cat = categories.find(c => c.slug === filters.category)
-        if (cat) query = query.eq('category_id', cat.id)
-      }
-
-      // Breed
-      if (filters.breed) {
-        query = query.eq('breed_id', filters.breed)
-      }
-
-      // Price range
-      if (filters.minPrice) query = query.gte('price', parseInt(filters.minPrice))
-      if (filters.maxPrice) query = query.lte('price', parseInt(filters.maxPrice))
-
-      // Location
-      if (filters.state) query = query.ilike('state', `%${filters.state}%`)
-      if (filters.city) query = query.ilike('city', `%${filters.city}%`)
-
-      // Gender
-      if (filters.gender) query = query.eq('gender', filters.gender)
-
-      // Health
-      if (filters.health) query = query.eq('health_status', filters.health)
-
-      // Sort
-      switch (filters.sort) {
-        case 'price_asc':
-          query = query.order('price', { ascending: true })
-          break
-        case 'price_desc':
-          query = query.order('price', { ascending: false })
-          break
-        default:
-          query = query.order('created_at', { ascending: false })
-      }
-
-      // Pagination
-      const from = (filters.page - 1) * ITEMS_PER_PAGE
-      query = query.range(from, from + ITEMS_PER_PAGE - 1)
-
-      const { data, count } = await query
-      setListings(data || [])
-      setTotalCount(count || 0)
-
-      // Wishlists
-      if (user) {
-        const { data: wishlist } = await supabase
-          .from('wishlists')
-          .select('listing_id')
-          .eq('user_id', user.id)
-        setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
-      } else {
-        setWishlistedIds([])
-      }
-
-      setLoading(false)
     }
     fetchListings()
   }, [sessionReady, user, searchParams, categories, filters.breed, filters.category, filters.city, filters.gender, filters.health, filters.maxPrice, filters.minPrice, filters.page, filters.q, filters.sort, filters.state])
