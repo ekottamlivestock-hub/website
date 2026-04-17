@@ -44,41 +44,51 @@ export default function ImageUploader({
     setUploading(true)
     const newImages = []
 
-    for (const file of validFiles) {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${folder ? folder + '/' : ''}${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+    try {
+      for (const file of validFiles) {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${folder ? folder + '/' : ''}${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
 
-      try {
-        setProgress(prev => ({ ...prev, [file.name]: 0 }))
-        
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .upload(fileName, file, {
-            cacheControl: '3600',
-            upsert: false,
+        try {
+          setProgress(prev => ({ ...prev, [file.name]: 0 }))
+          
+          // Add timeout to prevent hanging uploads (20 seconds)
+          const uploadPromise = supabase.storage
+            .from(bucket)
+            .upload(fileName, file, {
+              cacheControl: '3600',
+              upsert: false,
+            })
+
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Upload timed out after 20 seconds. Please check your connection.')), 20000)
           })
 
-        if (error) throw error
+          const result = await Promise.race([uploadPromise, timeoutPromise])
+          
+          if (result.error) throw result.error
+          const data = result.data
 
-        const { data: { publicUrl } } = supabase.storage
-          .from(bucket)
-          .getPublicUrl(data.path)
+          const { data: { publicUrl } } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(data.path)
 
-        newImages.push(publicUrl)
-        setProgress(prev => ({ ...prev, [file.name]: 100 }))
-      } catch (err) {
-        console.error('Upload error:', err)
-        toast.error(`Failed to upload ${file.name}`)
+          newImages.push(publicUrl)
+          setProgress(prev => ({ ...prev, [file.name]: 100 }))
+        } catch (err) {
+          console.error('Upload error:', err)
+          toast.error(err.message || `Failed to upload ${file.name}`)
+        }
       }
-    }
 
-    if (newImages.length > 0) {
-      onImagesChange([...images, ...newImages])
-      toast.success(`${newImages.length} image${newImages.length > 1 ? 's' : ''} uploaded`)
+      if (newImages.length > 0) {
+        onImagesChange([...images, ...newImages])
+        toast.success(`${newImages.length} image${newImages.length > 1 ? 's' : ''} uploaded`)
+      }
+    } finally {
+      setUploading(false)
+      setProgress({})
     }
-
-    setUploading(false)
-    setProgress({})
   }, [images, maxFiles, maxSizeMB, bucket, folder, onImagesChange])
 
   const removeImage = (index) => {
