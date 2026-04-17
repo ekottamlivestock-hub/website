@@ -53,6 +53,12 @@ export async function middleware(request) {
     
     const pathname = request.nextUrl.pathname
 
+    // Allow API routes and Next.js internal routes through unconditionally
+    // These are needed for push notifications, Supabase auth, and client-side navigation
+    if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) {
+      return supabaseResponse
+    }
+
     // Public routes — no auth needed
     const publicRoutes = ['/', '/listings', '/auth/callback', '/about', '/terms', '/privacy', '/refund', '/fraud-prevention']
     const isPublicRoute = publicRoutes.some(route =>
