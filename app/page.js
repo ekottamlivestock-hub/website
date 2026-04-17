@@ -30,11 +30,12 @@ function HomePageContent() {
   const [categories, setCategories] = useState([])
   const [featuredListings, setFeaturedListings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [authInitialized, setAuthInitialized] = useState(false)
   const [user, setUser] = useState(null)
   const [wishlistedIds, setWishlistedIds] = useState([])
   const [heroIndex, setHeroIndex] = useState(0)
   const searchParams = useSearchParams()
-  const hasFetchedRef = React.useRef(false)
+  const loadAttemptRef = React.useRef(0)
 
   const heroImages = [
     '/images/1.jpg',
@@ -62,76 +63,106 @@ function HomePageContent() {
     }
   }, [searchParams])
 
+  // Centralized data loading
+  const loadData = React.useCallback(async (currentUser = null) => {
+    setLoading(true)
+    console.log(`[HomePage] Loading data (Attempt ${++loadAttemptRef.current})...`)
+    
+    try {
+      // 1. Fetch Categories
+      const { data: cats, error: catsError } = await supabase
+        .from('animal_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('name')
+      
+      if (catsError) {
+        console.error('[HomePage] Categories fetch error:', catsError)
+      }
+      setCategories(cats || [])
+
+      // 2. Fetch Listings
+      const { data: listings, error: listingsError } = await supabase
+        .from('listings')
+        .select(`
+          *,
+          animal_categories (name, slug),
+          profiles (full_name, avatar_url),
+          listing_media (url, sort_order)
+        `)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(8)
+
+      if (listingsError) {
+        console.error('[HomePage] Listings fetch error:', listingsError)
+        // If it's a 401/403 despite being public, it might be a corrupted session
+        if (listingsError.status === 401 || listingsError.status === 403) {
+          console.warn('[HomePage] Auth policy rejection on public data. Likely session corruption.')
+        }
+      }
+      setFeaturedListings(listings || [])
+
+      // 3. Fetch Wishlist if user is present
+      if (currentUser) {
+        const { data: wishlist, error: wishlistError } = await supabase
+          .from('wishlists')
+          .select('listing_id')
+          .eq('user_id', currentUser.id)
+        
+        if (wishlistError) {
+          console.error('[HomePage] Wishlist fetch error:', wishlistError)
+        }
+        setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
+      } else {
+        setWishlistedIds([])
+      }
+
+    } catch (err) {
+      console.error('[HomePage] Unexpected error during load:', err)
+      toast.error('Failed to connect to the database. Please check your connection.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // 1. Handle Auth & Initial Load
   useEffect(() => {
     let mounted = true
 
-    // Fetch categories and listings — these are public and don't depend on auth
-    const fetchPublicData = async () => {
-      try {
-        // Fetch categories
-        const { data: cats, error: catsError } = await supabase
-          .from('animal_categories')
-          .select('*')
-          .eq('is_active', true)
-          .order('name')
-        if (catsError) console.error('Failed to fetch categories:', catsError)
-        if (mounted) setCategories(cats || [])
-
-        // Fetch featured listings
-        const { data: listings, error: listingsError } = await supabase
-          .from('listings')
-          .select(`
-            *,
-            animal_categories (name, slug),
-            profiles (full_name, avatar_url),
-            listing_media (url, sort_order)
-          `)
-          .eq('status', 'approved')
-          .order('created_at', { ascending: false })
-          .limit(8)
-        if (listingsError) console.error('Failed to fetch listings:', listingsError)
-        if (mounted) setFeaturedListings(listings || [])
-      } catch (err) {
-        console.error('Error fetching public data:', err)
-        if (mounted) toast.error('Failed to load data. Please refresh the page.')
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-
-    // Fetch wishlists — depends on authenticated session
-    const fetchWishlist = async (session) => {
-      try {
-        if (session?.user) {
-          const { data: wishlist } = await supabase
-            .from('wishlists')
-            .select('listing_id')
-            .eq('user_id', session.user.id)
-          if (mounted) setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
-        } else {
-          if (mounted) setWishlistedIds([])
-        }
-      } catch (err) {
-        console.error('Error fetching wishlist:', err)
-      }
-    }
-
-    // Trigger public data fetch immediately on mount
-    fetchPublicData()
-
-    // Listen for auth state changes to update user state and wishlist
+    // Set up auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (mounted) setUser(session?.user || null)
-        fetchWishlist(session)
+      async (event, session) => {
+        const currentUser = session?.user || null
+        
+        if (mounted) {
+          setUser(currentUser)
+          
+          // Only trigger a data reload on login/logout events, 
+          // or if this is the first time we've determined the auth state
+          if (!authInitialized || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            setAuthInitialized(true)
+            loadData(currentUser)
+          }
+        }
       }
     )
+
+    // Fallback: If auth listener doesn't fire within 2 seconds, force initialize
+    const timeout = setTimeout(() => {
+      if (mounted && !authInitialized) {
+        console.warn('[HomePage] Auth initialization timed out, forcing public load...')
+        setAuthInitialized(true)
+        loadData(null)
+      }
+    }, 2000)
 
     return () => {
       mounted = false
       subscription.unsubscribe()
+      clearTimeout(timeout)
     }
-  }, [])
+  }, [authInitialized, loadData])
 
   return (
     <div className="min-h-screen">

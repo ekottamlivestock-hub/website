@@ -39,9 +39,17 @@ export default function ListingGrid({
         {emptyAction ? (
           emptyAction
         ) : (
-          <Link href={emptyActionHref} className="btn-primary text-sm px-5 py-2.5">
-            {emptyActionLabel}
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link href={emptyActionHref} className="btn-primary text-sm px-5 py-2.5">
+              {emptyActionLabel}
+            </Link>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-5 py-2.5 bg-stone-100 text-stone-600 rounded-full text-sm font-semibold hover:bg-stone-200 transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
         )}
       </div>
     )
