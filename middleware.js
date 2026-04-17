@@ -7,6 +7,14 @@ export async function middleware(request) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    const pathname = request.nextUrl.pathname
+    const protectedRoutes = ['/admin', '/seller', '/sell', '/buyer', '/profile', '/notifications']
+    if (protectedRoutes.some(route => pathname.startsWith(route))) {
+      const redirectUrl = new URL('/', request.url)
+      redirectUrl.searchParams.set('error', 'unauthorized')
+      redirectUrl.searchParams.set('message', 'System configuration error')
+      return NextResponse.redirect(redirectUrl)
+    }
     return NextResponse.next()
   }
 
@@ -46,7 +54,7 @@ export async function middleware(request) {
     const pathname = request.nextUrl.pathname
 
     // Public routes — no auth needed
-    const publicRoutes = ['/', '/listings', '/auth/callback', '/about', '/terms', '/privacy']
+    const publicRoutes = ['/', '/listings', '/auth/callback', '/about', '/terms', '/privacy', '/refund', '/fraud-prevention']
     const isPublicRoute = publicRoutes.some(route =>
       pathname === route || pathname.startsWith('/listings/')
     )
@@ -57,7 +65,12 @@ export async function middleware(request) {
     const protectedRoutes = ['/admin', '/seller', '/sell', '/buyer', '/profile', '/notifications']
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
-    if (!isProtectedRoute) return supabaseResponse
+    // SECURITY: Block unknown routes that aren't in either list.
+    // This prevents accidental exposure of unintended paths.
+    if (!isProtectedRoute) {
+      const redirectUrl = new URL('/', request.url)
+      return NextResponse.redirect(redirectUrl)
+    }
 
     // No user or auth error — redirect to home
     if (!user || authError) {
@@ -108,8 +121,16 @@ export async function middleware(request) {
     }
 
   } catch (err) {
-    // If anything fails, we log it and fail-open to avoid 500
+    // If anything fails, we log it and fail-closed for protected routes
     console.error('CRITICAL: Middleware error caught:', err)
+    const pathname = request.nextUrl.pathname
+    const protectedRoutes = ['/admin', '/seller', '/sell', '/buyer', '/profile', '/notifications']
+    if (protectedRoutes.some(route => pathname.startsWith(route))) {
+      const redirectUrl = new URL('/', request.url)
+      redirectUrl.searchParams.set('error', 'unauthorized')
+      redirectUrl.searchParams.set('message', 'Authentication service unavailable')
+      return NextResponse.redirect(redirectUrl)
+    }
     return NextResponse.next()
   }
 

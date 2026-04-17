@@ -125,15 +125,12 @@ export default function ListingDetailPage() {
           if (!cancelled) setSimilarListings(similar || [])
         }
 
-        // Increment view count
+        // Increment view count via server-side RPC (bypasses anti-tampering trigger)
         try {
-          const { error: rpcError } = await supabase.rpc('increment_view_count', { listing_id: id })
-          if (rpcError) throw rpcError
-        } catch (rpcErr) {
-          await supabase
-            .from('listings')
-            .update({ view_count: (listingData.view_count || 0) + 1 })
-            .eq('id', id)
+          await supabase.rpc('increment_view_count', { p_listing_id: id })
+        } catch (viewErr) {
+          // Non-critical — silently ignore if view count fails
+          console.warn('View count increment failed:', viewErr)
         }
       } catch (err) {
         console.error("Error in fetchData:", err)
@@ -182,6 +179,10 @@ export default function ListingDetailPage() {
 
   const handleOrder = async () => {
     if (!user) { toast.error('Please sign in to place an order'); return }
+    if (user.id === listing.seller_id) {
+      toast.error("You can't purchase your own listing")
+      return
+    }
     setSubmitting(true)
     try {
       const totalPrice = listing.price * orderForm.quantity

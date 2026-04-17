@@ -2,6 +2,8 @@ import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase-server'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req) {
   // Initialize at request time (not build time) to avoid missing env var errors
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
