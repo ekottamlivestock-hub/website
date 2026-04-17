@@ -108,7 +108,16 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0 group">
+          <Link 
+            href="/" 
+            onClick={(e) => {
+              if (window.location.pathname === '/') {
+                e.preventDefault()
+                window.location.reload()
+              }
+            }}
+            className="flex items-center gap-2 shrink-0 group"
+          >
             <KottamLogo className="w-8 h-8 text-primary-600 group-hover:-translate-y-0.5 transition-transform" />
             <div className="flex flex-col justify-center">
               <span className="text-2xl font-black text-primary-600 tracking-tighter leading-none">
