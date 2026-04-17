@@ -63,6 +63,8 @@ function HomePageContent() {
   }, [searchParams])
 
   useEffect(() => {
+    let mounted = true
+
     // Fetch categories and listings — these are public and don't depend on auth
     const fetchPublicData = async () => {
       try {
@@ -73,7 +75,7 @@ function HomePageContent() {
           .eq('is_active', true)
           .order('name')
         if (catsError) console.error('Failed to fetch categories:', catsError)
-        setCategories(cats || [])
+        if (mounted) setCategories(cats || [])
 
         // Fetch featured listings
         const { data: listings, error: listingsError } = await supabase
@@ -88,12 +90,12 @@ function HomePageContent() {
           .order('created_at', { ascending: false })
           .limit(8)
         if (listingsError) console.error('Failed to fetch listings:', listingsError)
-        setFeaturedListings(listings || [])
+        if (mounted) setFeaturedListings(listings || [])
       } catch (err) {
         console.error('Error fetching public data:', err)
-        toast.error('Failed to load data. Please refresh the page.')
+        if (mounted) toast.error('Failed to load data. Please refresh the page.')
       } finally {
-        setLoading(false)
+        if (mounted) setLoading(false)
       }
     }
 
@@ -105,36 +107,30 @@ function HomePageContent() {
             .from('wishlists')
             .select('listing_id')
             .eq('user_id', session.user.id)
-          setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
+          if (mounted) setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
         } else {
-          setWishlistedIds([])
+          if (mounted) setWishlistedIds([])
         }
       } catch (err) {
         console.error('Error fetching wishlist:', err)
       }
     }
 
-    // Listen for auth state changes — this fires with INITIAL_SESSION on load
-    // and SIGNED_IN after OAuth redirect.
+    // Trigger public data fetch immediately on mount
+    fetchPublicData()
+
+    // Listen for auth state changes to update user state and wishlist
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setUser(session?.user || null)
-
-        // Only fetch public data (categories, listings) ONCE on first load.
-        // Subsequent auth events (SIGNED_IN, TOKEN_REFRESHED) should NOT
-        // re-trigger public data fetches or show loading skeletons — that
-        // causes the "data disappears" flash during login.
-        if (!hasFetchedRef.current) {
-          hasFetchedRef.current = true
-          fetchPublicData()
-        }
-
-        // Always re-fetch wishlist when auth state changes
+        if (mounted) setUser(session?.user || null)
         fetchWishlist(session)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   return (
