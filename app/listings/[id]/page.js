@@ -42,93 +42,105 @@ export default function ListingDetailPage() {
     const fetchData = async (currentUser) => {
       setLoading(true)
 
-      if (currentUser) {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single()
-        if (!cancelled) setProfile(prof)
-      }
+      try {
+        if (currentUser) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single()
+          if (!cancelled) setProfile(prof)
+        }
 
-      // Listing
-      const { data: listingData, error } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          animal_categories (name, slug),
-          animal_breeds (name),
-          profiles (id, full_name, avatar_url, phone, city, state)
-        `)
-        .eq('id', id)
-        .single()
-
-      if (cancelled) return
-
-      if (error || !listingData) {
-        toast.error('Listing not found')
-        router.push('/listings')
-        return
-      }
-
-      setListing(listingData)
-      setSeller(listingData.profiles)
-
-      // Media
-      const { data: mediaData } = await supabase
-        .from('listing_media')
-        .select('*')
-        .eq('listing_id', id)
-        .order('sort_order')
-      if (!cancelled) setMedia(mediaData || [])
-
-      // Seller rating
-      const { data: reviews } = await supabase
-        .from('reviews')
-        .select('rating')
-        .eq('reviewee_id', listingData.seller_id)
-      if (!cancelled && reviews && reviews.length > 0) {
-        const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-        setSellerRating({ avg: avg.toFixed(1), count: reviews.length })
-      }
-
-      // Wishlist check
-      if (currentUser) {
-        const { data: wl } = await supabase
-          .from('wishlists')
-          .select('id')
-          .eq('user_id', currentUser.id)
-          .eq('listing_id', id)
-          .maybeSingle()
-        if (!cancelled) setWishlisted(!!wl)
-      }
-
-      // Similar listings
-      const { data: similar } = await supabase
-        .from('listings')
-        .select(`
-          *,
-          animal_categories (name, slug),
-          profiles (full_name, avatar_url),
-          listing_media (url, sort_order)
-        `)
-        .eq('category_id', listingData.category_id)
-        .eq('status', 'approved')
-        .neq('id', id)
-        .limit(4)
-      if (!cancelled) setSimilarListings(similar || [])
-
-      // Increment view count
-      await supabase.rpc('increment_view_count', { listing_id: id }).catch(() => {
-        // Fallback if RPC doesn't exist
-        supabase
+        // Listing
+        const { data: listingData, error } = await supabase
           .from('listings')
-          .update({ view_count: (listingData.view_count || 0) + 1 })
+          .select(`
+            *,
+            animal_categories (name, slug),
+            animal_breeds (name),
+            profiles (id, full_name, avatar_url, phone, city, state)
+          `)
           .eq('id', id)
-          .then()
-      })
+          .single()
 
-      if (!cancelled) setLoading(false)
+        if (cancelled) return
+
+        if (error || !listingData) {
+          console.error("Listing fetch error:", error)
+          toast.error('Listing not found')
+          router.push('/listings')
+          return
+        }
+
+        if (!cancelled) {
+          setListing(listingData)
+          setSeller(listingData.profiles)
+        }
+
+        // Media
+        const { data: mediaData } = await supabase
+          .from('listing_media')
+          .select('*')
+          .eq('listing_id', id)
+          .order('sort_order')
+        if (!cancelled) setMedia(mediaData || [])
+
+        // Seller rating
+        const { data: reviews } = await supabase
+          .from('reviews')
+          .select('rating')
+          .eq('reviewee_id', listingData.seller_id)
+        if (!cancelled && reviews && reviews.length > 0) {
+          const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+          setSellerRating({ avg: avg.toFixed(1), count: reviews.length })
+        }
+
+        // Wishlist check
+        if (currentUser) {
+          const { data: wl, error: wlError } = await supabase
+            .from('wishlists')
+            .select('id')
+            .eq('user_id', currentUser.id)
+            .eq('listing_id', id)
+            .maybeSingle()
+          if (!cancelled && !wlError) setWishlisted(!!wl)
+        }
+
+        // Similar listings
+        let categoryId = listingData.category_id || listingData.animal_categories?.id
+        if (categoryId) {
+          const { data: similar } = await supabase
+            .from('listings')
+            .select(`
+              *,
+              animal_categories (name, slug),
+              profiles (full_name, avatar_url),
+              listing_media (url, sort_order)
+            `)
+            .eq('category_id', categoryId)
+            .eq('status', 'approved')
+            .neq('id', id)
+            .limit(4)
+          if (!cancelled) setSimilarListings(similar || [])
+        }
+
+        // Increment view count
+        try {
+          const { error: rpcError } = await supabase.rpc('increment_view_count', { listing_id: id })
+          if (rpcError) throw rpcError
+        } catch (rpcErr) {
+          await supabase
+            .from('listings')
+            .update({ view_count: (listingData.view_count || 0) + 1 })
+            .eq('id', id)
+        }
+      } catch (err) {
+        console.error("Error in fetchData:", err)
+        if (!cancelled) toast.error("Failed to load listing details.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
 
     // Listen for auth state changes — fires INITIAL_SESSION on load,
