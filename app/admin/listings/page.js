@@ -8,7 +8,7 @@ import { formatPrice, formatDate, sendNotification } from '@/lib/helpers'
 import StatusBadge from '@/components/StatusBadge'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import toast from 'react-hot-toast'
-import { Loader2, Check, X, MessageCircle, Eye } from 'lucide-react'
+import { Loader2, Check, X, MessageCircle, Eye, Pause, Play } from 'lucide-react'
 
 export default function AdminListingsPage() {
   return (
@@ -46,29 +46,51 @@ function ListingsContent() {
     setProcessing(true)
     const { data: { session } } = await supabase.auth.getSession()
     try {
-      const newStatus = action === 'approved' ? 'approved' : 'rejected'
-      await supabase.from('listings').update({ status: newStatus }).eq('id', listing.id)
-      await supabase.from('listing_approvals').insert({
+      const statusMap = {
+        approved: 'approved',
+        rejected: 'rejected',
+        paused: 'paused',
+        unpaused: 'approved',
+      }
+      const newStatus = statusMap[action]
+      if (!newStatus) throw new Error('Invalid action')
+
+      const { error: updErr } = await supabase
+        .from('listings').update({ status: newStatus }).eq('id', listing.id)
+      if (updErr) throw updErr
+
+      const { error: logErr } = await supabase.from('listing_approvals').insert({
         listing_id: listing.id, admin_id: session.user.id, action, note,
       })
+      if (logErr) console.error('Audit log insert failed:', logErr)
 
-      const notifType = action === 'approved' ? 'listing_approved' : 'listing_rejected'
-      const msg = action === 'approved'
-        ? `Your listing "${listing.title}" has been approved!`
-        : `Your listing "${listing.title}" was rejected. Reason: ${note}`
-      await sendNotification(listing.seller_id, notifType, msg, { listing_id: listing.id })
+      const notifMap = {
+        approved: { type: 'listing_approved', msg: `Your listing "${listing.title}" has been approved!` },
+        rejected: { type: 'listing_rejected', msg: `Your listing "${listing.title}" was rejected. Reason: ${note}` },
+        paused:   { type: 'listing_paused',   msg: `Your listing "${listing.title}" has been paused by admin and is temporarily hidden from buyers.` },
+        unpaused: { type: 'listing_unpaused', msg: `Your listing "${listing.title}" has been unpaused and is live again.` },
+      }
+      const notif = notifMap[action]
+      if (notif) {
+        await sendNotification(listing.seller_id, notif.type, notif.msg, { listing_id: listing.id })
+      }
 
       toast.success(`Listing ${action}`)
       setRejectModal(null)
       setRejectNote('')
       fetchListings()
-    } catch { toast.error('Action failed') }
-    finally { setProcessing(false) }
+    } catch (err) {
+      console.error('Admin action failed:', err)
+      toast.error('Action failed')
+    } finally {
+      setProcessing(false)
+    }
   }
 
   const tabs = [
     { key: 'pending_review', label: 'Pending' },
     { key: 'approved', label: 'Approved' },
+    { key: 'paused', label: 'Paused' },
     { key: 'rejected', label: 'Rejected' },
     { key: 'all', label: 'All' },
   ]
@@ -123,14 +145,22 @@ function ListingsContent() {
                     <td className="px-4 py-3 text-stone-400 hidden md:table-cell">{formatDate(l.created_at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <Link href={`/listings/${l.id}`} className="p-1.5 text-stone-400 hover:text-stone-600 rounded"><Eye className="w-4 h-4" /></Link>
+                        <Link href={`/listings/${l.id}`} className="p-1.5 text-stone-400 hover:text-stone-600 rounded" title="View"><Eye className="w-4 h-4" /></Link>
                         {l.status === 'pending_review' && (
                           <>
                             <button onClick={() => handleAction(l, 'approved')} disabled={processing}
-                              className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded"><Check className="w-4 h-4" /></button>
+                              className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded" title="Approve"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setRejectModal(l)}
-                              className="p-1.5 text-red-500 hover:bg-red-50 rounded"><X className="w-4 h-4" /></button>
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded" title="Reject"><X className="w-4 h-4" /></button>
                           </>
+                        )}
+                        {l.status === 'approved' && (
+                          <button onClick={() => handleAction(l, 'paused')} disabled={processing}
+                            className="p-1.5 text-amber-500 hover:bg-amber-50 rounded" title="Pause listing"><Pause className="w-4 h-4" /></button>
+                        )}
+                        {l.status === 'paused' && (
+                          <button onClick={() => handleAction(l, 'unpaused')} disabled={processing}
+                            className="p-1.5 text-emerald-500 hover:bg-emerald-50 rounded" title="Unpause listing"><Play className="w-4 h-4" /></button>
                         )}
                       </div>
                     </td>

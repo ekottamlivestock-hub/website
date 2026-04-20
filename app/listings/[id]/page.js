@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { formatPrice, formatAge, getCategoryEmoji, timeAgo, sendNotification } from '@/lib/helpers'
+import { formatPrice, formatAge, getCategoryEmoji, timeAgo, sendNotification, COMPANY_CONTACT, buildListingEnquiryWhatsApp } from '@/lib/helpers'
 import ListingGrid from '@/components/ListingGrid'
 import StarRating from '@/components/StarRating'
 import StatusBadge from '@/components/StatusBadge'
@@ -29,7 +29,6 @@ export default function ListingDetailPage() {
   const [profile, setProfile] = useState(null)
   const [wishlisted, setWishlisted] = useState(false)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const [showPhone, setShowPhone] = useState(false)
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [orderForm, setOrderForm] = useState({ quantity: 1, delivery_address: '', buyer_note: '' })
@@ -59,7 +58,7 @@ export default function ListingDetailPage() {
             *,
             animal_categories (name, slug),
             animal_breeds (name),
-            profiles (id, full_name, avatar_url, phone, city, state)
+            profiles (id, full_name, avatar_url, city, state)
           `)
           .eq('id', id)
           .maybeSingle()
@@ -471,25 +470,28 @@ export default function ListingDetailPage() {
                 </div>
               </div>
 
-              {/* Contact */}
-              {showPhone && seller.phone ? (
-                <a href={`tel:${seller.phone}`}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 
-                    text-primary-700 rounded-xl font-semibold text-sm">
-                  <Phone className="w-4 h-4" /> {seller.phone}
-                </a>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (!user) { toast.error('Please sign in to contact seller'); return }
-                    setShowPhone(true)
-                  }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 
-                    text-white rounded-xl font-semibold text-sm hover:bg-primary-700 transition-all"
+              {/* Contact — all enquiries are routed through ekottam */}
+              <p className="text-xs text-stone-500 mb-3 leading-relaxed">
+                For enquiries about this listing, contact ekottam directly. We&apos;ll connect you with the seller.
+              </p>
+              <div className="space-y-2">
+                <a
+                  href={buildListingEnquiryWhatsApp(listing)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700
+                    text-white rounded-xl font-semibold text-sm transition-all"
                 >
-                  <Phone className="w-4 h-4" /> Contact Seller
-                </button>
-              )}
+                  <MessageCircle className="w-4 h-4" /> WhatsApp ekottam
+                </a>
+                <a
+                  href={`tel:${COMPANY_CONTACT.phoneTel}`}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 hover:bg-primary-700
+                    text-white rounded-xl font-semibold text-sm transition-all"
+                >
+                  <Phone className="w-4 h-4" /> Call {COMPANY_CONTACT.phoneDisplay}
+                </a>
+              </div>
             </div>
           )}
 
