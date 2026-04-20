@@ -37,7 +37,7 @@ export async function POST(req) {
       .from('profiles')
       .select('role')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     // Assuming only admins or system processes should trigger this endpoint
     if (profile?.role !== 'admin') {

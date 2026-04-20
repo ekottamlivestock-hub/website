@@ -44,15 +44,15 @@ export default function ListingDetailPage() {
 
       try {
         if (currentUser) {
-          const { data: prof } = await supabase
+          const { data: prof, error: profErr } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', currentUser.id)
-            .single()
-          if (!cancelled) setProfile(prof)
+            .maybeSingle()
+          if (profErr) console.error('Profile fetch error:', profErr)
+          if (!cancelled) setProfile(prof || null)
         }
 
-        // Listing
         const { data: listingData, error } = await supabase
           .from('listings')
           .select(`
@@ -62,7 +62,7 @@ export default function ListingDetailPage() {
             profiles (id, full_name, avatar_url, phone, city, state)
           `)
           .eq('id', id)
-          .single()
+          .maybeSingle()
 
         if (cancelled) return
 

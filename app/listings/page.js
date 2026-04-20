@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -109,7 +107,7 @@ function ListingsContent() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Fetch listings ΓÇö only runs after session state has settled
+  // Fetch listings — runs on filter/sort/page changes
   useEffect(() => {
     if (!sessionReady) return
 
@@ -124,31 +122,24 @@ function ListingsContent() {
             animal_categories (name, slug),
             profiles (full_name, avatar_url),
             listing_media (url, sort_order)
-          `, { count: 'exact' })
+          `, { count: 'estimated' })
           .eq('status', 'approved')
 
-        // Search
         if (filters.q) {
           const sq = sanitizeFilter(filters.q)
           if (sq) query = query.or(`title.ilike.%${sq}%,description.ilike.%${sq}%`)
         }
 
-        // Category
         if (filters.category) {
           const cat = categories.find(c => c.slug === filters.category)
           if (cat) query = query.eq('category_id', cat.id)
         }
 
-        // Breed
-        if (filters.breed) {
-          query = query.eq('breed_id', filters.breed)
-        }
+        if (filters.breed) query = query.eq('breed_id', filters.breed)
 
-        // Price range
         if (filters.minPrice) query = query.gte('price', parseInt(filters.minPrice))
         if (filters.maxPrice) query = query.lte('price', parseInt(filters.maxPrice))
 
-        // Location
         if (filters.state) {
           const ss = sanitizeFilter(filters.state)
           if (ss) query = query.ilike('state', `%${ss}%`)
@@ -158,13 +149,9 @@ function ListingsContent() {
           if (sc) query = query.ilike('city', `%${sc}%`)
         }
 
-        // Gender
         if (filters.gender) query = query.eq('gender', filters.gender)
-
-        // Health
         if (filters.health) query = query.eq('health_status', filters.health)
 
-        // Sort
         switch (filters.sort) {
           case 'price_asc':
             query = query.order('price', { ascending: true })
@@ -176,7 +163,6 @@ function ListingsContent() {
             query = query.order('created_at', { ascending: false })
         }
 
-        // Pagination
         const from = (filters.page - 1) * ITEMS_PER_PAGE
         query = query.range(from, from + ITEMS_PER_PAGE - 1)
 
@@ -184,17 +170,6 @@ function ListingsContent() {
         if (error) console.error('Failed to fetch listings:', error)
         setListings(data || [])
         setTotalCount(count || 0)
-
-        // Wishlists
-        if (user) {
-          const { data: wishlist } = await supabase
-            .from('wishlists')
-            .select('listing_id')
-            .eq('user_id', user.id)
-          setWishlistedIds(wishlist?.map(w => w.listing_id) || [])
-        } else {
-          setWishlistedIds([])
-        }
       } catch (err) {
         console.error('Error fetching listings:', err)
       } finally {
@@ -202,7 +177,31 @@ function ListingsContent() {
       }
     }
     fetchListings()
-  }, [sessionReady, user, searchParams, categories, filters.breed, filters.category, filters.city, filters.gender, filters.health, filters.maxPrice, filters.minPrice, filters.page, filters.q, filters.sort, filters.state])
+  }, [sessionReady, searchParams, categories, filters.breed, filters.category, filters.city, filters.gender, filters.health, filters.maxPrice, filters.minPrice, filters.page, filters.q, filters.sort, filters.state])
+
+  // Wishlist fetched ONCE when user is known — not refetched on every filter change
+  useEffect(() => {
+    if (!sessionReady) return
+    if (!user) {
+      setWishlistedIds([])
+      return
+    }
+    let cancelled = false
+    const fetchWishlist = async () => {
+      const { data, error } = await supabase
+        .from('wishlists')
+        .select('listing_id')
+        .eq('user_id', user.id)
+      if (cancelled) return
+      if (error) {
+        console.error('Wishlist fetch error:', error)
+        return
+      }
+      setWishlistedIds(data?.map(w => w.listing_id) || [])
+    }
+    fetchWishlist()
+    return () => { cancelled = true }
+  }, [sessionReady, user])
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
   const hasActiveFilters = Object.entries(filters).some(([key, val]) => 

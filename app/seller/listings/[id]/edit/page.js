@@ -51,13 +51,12 @@ function EditListingContent() {
         .order('name')
       setCategories(cats || [])
 
-      // Fetch the listing
       const { data: l, error } = await supabase
         .from('listings')
         .select('*, listing_media(url, sort_order)')
         .eq('id', id)
         .eq('seller_id', session.user.id)
-        .single()
+        .maybeSingle()
 
       if (error || !l) {
         toast.error('Listing not found or access denied')

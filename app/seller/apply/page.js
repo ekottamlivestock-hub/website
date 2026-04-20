@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -36,12 +34,13 @@ function ApplyContent() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      const { data: prof } = await supabase
+      const { data: prof, error: profErr } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .single()
-      setProfile(prof)
+        .maybeSingle()
+      if (profErr) console.error('Profile fetch error:', profErr)
+      setProfile(prof || null)
 
       if (prof?.seller_status === 'approved') {
         router.push('/seller/dashboard')

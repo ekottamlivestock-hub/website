@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -180,8 +178,11 @@ function HomePageContent() {
               src={src}
               alt="Livestock farming"
               fill
+              sizes="100vw"
+              quality={70}
               className="object-cover object-center"
-              priority={i <= 1}
+              priority={i === 0}
+              loading={i === 0 ? 'eager' : 'lazy'}
             />
           </div>
         ))}

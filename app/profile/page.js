@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
@@ -29,19 +27,31 @@ function ProfileContent() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-      setUser(session.user)
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          setLoading(false)
+          return
+        }
+        setUser(session.user)
 
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
-      setProfile(prof)
-      setForm({ phone: prof?.phone || '', state: prof?.state || '', city: prof?.city || '' })
+        const { data: prof, error: profErr } = await supabase
+          .from('profiles').select('*').eq('id', session.user.id).maybeSingle()
+        if (profErr) console.error('Profile fetch error:', profErr)
+        setProfile(prof || null)
+        setForm({ phone: prof?.phone || '', state: prof?.state || '', city: prof?.city || '' })
 
-      // Reviews
-      const { data: revs } = await supabase.from('reviews').select('*, profiles!reviews_reviewer_id_fkey(full_name)')
-        .eq('reviewee_id', session.user.id).order('created_at', { ascending: false })
-      setReviews(revs || [])
-      setLoading(false)
+        const { data: revs, error: revErr } = await supabase
+          .from('reviews').select('*, profiles!reviews_reviewer_id_fkey(full_name)')
+          .eq('reviewee_id', session.user.id).order('created_at', { ascending: false })
+        if (revErr) console.error('Reviews fetch error:', revErr)
+        setReviews(revs || [])
+      } catch (err) {
+        console.error('Profile load error:', err)
+        toast.error('Failed to load profile')
+      } finally {
+        setLoading(false)
+      }
     }
     fetchData()
   }, [])

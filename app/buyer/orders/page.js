@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { formatPrice, formatDate } from '@/lib/helpers'
@@ -27,15 +25,28 @@ function OrdersContent() {
   const [submitting, setSubmitting] = useState(false)
 
   const fetchOrders = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const { data } = await supabase
-      .from('orders')
-      .select('*, listings(title, seller_id), reviews(id)')
-      .eq('buyer_id', session.user.id)
-      .order('created_at', { ascending: false })
-    setOrders(data || [])
-    setLoading(false)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setLoading(false)
+        return
+      }
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, listings(title, seller_id), reviews(id)')
+        .eq('buyer_id', session.user.id)
+        .order('created_at', { ascending: false })
+      if (error) {
+        console.error('Orders fetch error:', error)
+        toast.error('Failed to load orders')
+      }
+      setOrders(data || [])
+    } catch (err) {
+      console.error('Orders load failed:', err)
+      toast.error('Failed to load orders')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchOrders() }, [])

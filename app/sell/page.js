@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic'
-
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -76,6 +74,11 @@ function CreateListingContent() {
       toast.error('Please fill in title, category, and price')
       return
     }
+    if (!user?.id) {
+      toast.error('Your session has expired. Please sign in again.')
+      router.push('/?error=session_expired&message=Please+sign+in+again')
+      return
+    }
     setSubmitting(true)
     try {
       const { data: listing, error } = await supabase
@@ -100,11 +103,11 @@ function CreateListingContent() {
           status: status,
         })
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) throw error
+      if (!listing) throw new Error('Listing could not be created')
 
-      // Upload media
       if (images.length > 0) {
         const mediaRows = images.map((url, i) => ({
           listing_id: listing.id,
@@ -112,23 +115,30 @@ function CreateListingContent() {
           media_type: 'image',
           sort_order: i,
         }))
-        await supabase.from('listing_media').insert(mediaRows)
+        const { error: mediaError } = await supabase.from('listing_media').insert(mediaRows)
+        if (mediaError) {
+          console.error('Media insert failed:', mediaError)
+          toast.error('Listing saved, but some photos failed to upload.')
+        }
       }
 
-      // Notify admin if submitting for review
       if (status === 'pending_review') {
-        const { data: admins } = await supabase.from('profiles').select('id').eq('role', 'admin')
-        for (const admin of (admins || [])) {
-          await sendNotification(admin.id, 'new_listing_pending',
-            `New listing "${form.title}" needs review`,
-            { listing_id: listing.id })
+        const { data: admins, error: adminErr } = await supabase.from('profiles').select('id').eq('role', 'admin')
+        if (!adminErr) {
+          await Promise.all((admins || []).map(admin =>
+            sendNotification(admin.id, 'new_listing_pending',
+              `New listing "${form.title}" needs review`,
+              { listing_id: listing.id }
+            ).catch(e => console.error('notify admin failed:', e))
+          ))
         }
       }
 
       toast.success(status === 'draft' ? 'Draft saved!' : 'Listing submitted for review!')
       router.push('/seller/listings')
     } catch (err) {
-      toast.error('Failed to create listing')
+      console.error('create listing failed:', err)
+      toast.error(err?.message || 'Failed to create listing')
     } finally {
       setSubmitting(false)
     }
