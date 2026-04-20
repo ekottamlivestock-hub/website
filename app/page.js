@@ -28,7 +28,6 @@ function HomePageContent() {
   const [categories, setCategories] = useState([])
   const [featuredListings, setFeaturedListings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [authInitialized, setAuthInitialized] = useState(false)
   const [user, setUser] = useState(null)
   const [wishlistedIds, setWishlistedIds] = useState([])
   const [heroIndex, setHeroIndex] = useState(0)
@@ -128,39 +127,40 @@ function HomePageContent() {
   useEffect(() => {
     let mounted = true
 
-    // Set up auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    // Single source of truth for the initial load: read the session once,
+    // then kick off data fetch. Avoids the prior timeout/onAuthStateChange
+    // race that caused two concurrent loadData() calls and tripped the
+    // gotrue-js auth-token lock on mobile.
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return
         const currentUser = session?.user || null
-        
-        if (mounted) {
+        setUser(currentUser)
+        loadData(currentUser)
+      })
+      .catch((err) => {
+        if (!mounted) return
+        console.warn('[HomePage] getSession failed, loading public data:', err)
+        loadData(null)
+      })
+
+    // React only to real sign-in/sign-out transitions after the initial load.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          const currentUser = session?.user || null
           setUser(currentUser)
-          
-          // Only trigger a data reload on login/logout events, 
-          // or if this is the first time we've determined the auth state
-          if (!authInitialized || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            setAuthInitialized(true)
-            loadData(currentUser)
-          }
+          loadData(currentUser)
         }
       }
     )
 
-    // Fallback: If auth listener doesn't fire within 2 seconds, force initialize
-    const timeout = setTimeout(() => {
-      if (mounted && !authInitialized) {
-        console.warn('[HomePage] Auth initialization timed out, forcing public load...')
-        setAuthInitialized(true)
-        loadData(null)
-      }
-    }, 2000)
-
     return () => {
       mounted = false
       subscription.unsubscribe()
-      clearTimeout(timeout)
     }
-  }, [authInitialized, loadData])
+  }, [loadData])
 
   return (
     <div className="min-h-screen">
