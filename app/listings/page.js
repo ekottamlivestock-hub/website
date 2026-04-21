@@ -3,14 +3,11 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import CategoryBar from '@/components/CategoryBar'
 import ListingGrid from '@/components/ListingGrid'
 import { INDIAN_STATES } from '@/lib/helpers'
-import { SlidersHorizontal, X, ChevronDown } from 'lucide-react'
+import { SlidersHorizontal, X, Search, ArrowRight } from 'lucide-react'
 
 // Sanitize user input before interpolating into PostgREST filter strings.
-// Strips characters that have special meaning in PostgREST operators (,  .  (  )  "  '  \)
-// to prevent filter injection via crafted query parameters.
 function sanitizeFilter(str) {
   if (!str) return ''
   return str.replace(/[,.()"'\\%]/g, '').trim()
@@ -94,7 +91,7 @@ function ListingsContent() {
     fetchBreeds()
   }, [filters.category, categories])
 
-  // Track auth session via onAuthStateChange (resolves race condition after OAuth redirect)
+  // Track auth session via onAuthStateChange
   const [sessionReady, setSessionReady] = useState(false)
 
   useEffect(() => {
@@ -107,7 +104,7 @@ function ListingsContent() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Fetch listings — runs on filter/sort/page changes
+  // Fetch listings
   useEffect(() => {
     if (!sessionReady) return
 
@@ -179,7 +176,7 @@ function ListingsContent() {
     fetchListings()
   }, [sessionReady, searchParams, categories, filters.breed, filters.category, filters.city, filters.gender, filters.health, filters.maxPrice, filters.minPrice, filters.page, filters.q, filters.sort, filters.state])
 
-  // Wishlist fetched ONCE when user is known — not refetched on every filter change
+  // Wishlist
   useEffect(() => {
     if (!sessionReady) return
     if (!user) {
@@ -204,22 +201,43 @@ function ListingsContent() {
   }, [sessionReady, user])
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
-  const hasActiveFilters = Object.entries(filters).some(([key, val]) => 
+  const hasActiveFilters = Object.entries(filters).some(([key, val]) =>
     key !== 'page' && key !== 'sort' && val
   )
+
+  // Active filter chips for top of grid
+  const activeChips = []
+  if (filters.q) activeChips.push({ key: 'q', label: `"${filters.q}"` })
+  if (filters.category) {
+    const cat = categories.find(c => c.slug === filters.category)
+    if (cat) activeChips.push({ key: 'category', label: cat.name })
+  }
+  if (filters.breed) {
+    const br = breeds.find(b => b.id === filters.breed)
+    if (br) activeChips.push({ key: 'breed', label: br.name })
+  }
+  if (filters.state) activeChips.push({ key: 'state', label: filters.state })
+  if (filters.city) activeChips.push({ key: 'city', label: filters.city })
+  if (filters.gender) activeChips.push({ key: 'gender', label: filters.gender })
+  if (filters.health) activeChips.push({ key: 'health', label: filters.health })
+  if (filters.minPrice) activeChips.push({ key: 'minPrice', label: `≥ ₹${filters.minPrice}` })
+  if (filters.maxPrice) activeChips.push({ key: 'maxPrice', label: `≤ ₹${filters.maxPrice}` })
 
   const FilterPanel = () => (
     <div className="space-y-6">
       {/* Search */}
       <div>
         <label className="input-label">Search</label>
-        <input
-          type="text"
-          value={filters.q}
-          onChange={(e) => updateFilter('q', e.target.value)}
-          placeholder="Search animals..."
-          className="input-field text-sm"
-        />
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400 pointer-events-none" />
+          <input
+            type="text"
+            value={filters.q}
+            onChange={(e) => updateFilter('q', e.target.value)}
+            placeholder="Animals, breeds, keywords"
+            className="input-field pl-10 text-sm"
+          />
+        </div>
       </div>
 
       {/* Category */}
@@ -230,7 +248,7 @@ function ListingsContent() {
           onChange={(e) => updateFilter('category', e.target.value)}
           className="input-field text-sm"
         >
-          <option value="">All Categories</option>
+          <option value="">All categories</option>
           {categories.map(cat => (
             <option key={cat.id} value={cat.slug}>{cat.name}</option>
           ))}
@@ -246,7 +264,7 @@ function ListingsContent() {
             onChange={(e) => updateFilter('breed', e.target.value)}
             className="input-field text-sm"
           >
-            <option value="">All Breeds</option>
+            <option value="">All breeds</option>
             {breeds.map(b => (
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
@@ -256,8 +274,8 @@ function ListingsContent() {
 
       {/* Price Range */}
       <div>
-        <label className="input-label">Price Range (Γé╣)</label>
-        <div className="flex gap-2">
+        <label className="input-label">Price range (₹)</label>
+        <div className="grid grid-cols-2 gap-2">
           <input
             type="number"
             value={filters.minPrice}
@@ -283,7 +301,7 @@ function ListingsContent() {
           onChange={(e) => updateFilter('state', e.target.value)}
           className="input-field text-sm"
         >
-          <option value="">All States</option>
+          <option value="">All states</option>
           {INDIAN_STATES.map(s => (
             <option key={s} value={s}>{s}</option>
           ))}
@@ -297,7 +315,7 @@ function ListingsContent() {
           type="text"
           value={filters.city}
           onChange={(e) => updateFilter('city', e.target.value)}
-          placeholder="Enter city..."
+          placeholder="Any city"
           className="input-field text-sm"
         />
       </div>
@@ -305,20 +323,30 @@ function ListingsContent() {
       {/* Gender */}
       <div>
         <label className="input-label">Gender</label>
-        <select
-          value={filters.gender}
-          onChange={(e) => updateFilter('gender', e.target.value)}
-          className="input-field text-sm"
-        >
-          <option value="">Any</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { val: '', label: 'Any' },
+            { val: 'male', label: 'Male' },
+            { val: 'female', label: 'Female' },
+          ].map(opt => (
+            <button
+              key={opt.val || 'any'}
+              onClick={() => updateFilter('gender', opt.val)}
+              className={`px-3 py-2 rounded-full text-xs font-semibold border transition-all ${
+                filters.gender === opt.val
+                  ? 'bg-surface-ink text-white border-surface-ink'
+                  : 'bg-white text-surface-600 border-surface-200 hover:border-surface-400'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Health Status */}
+      {/* Health */}
       <div>
-        <label className="input-label">Health Status</label>
+        <label className="input-label">Health status</label>
         <select
           value={filters.health}
           onChange={(e) => updateFilter('health', e.target.value)}
@@ -331,47 +359,125 @@ function ListingsContent() {
         </select>
       </div>
 
-      {/* Clear Filters */}
       {hasActiveFilters && (
-        <button onClick={clearFilters} className="w-full btn-ghost text-sm text-red-500 hover:bg-red-50">
-          Clear All Filters
+        <button
+          onClick={clearFilters}
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-full
+            border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition-all"
+        >
+          <X className="w-4 h-4" /> Clear all filters
         </button>
       )}
     </div>
   )
 
-  return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <div className="bg-white border-b border-stone-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-stone-800 mb-4">Browse Listings</h1>
-          <Suspense fallback={<div className="h-12 skeleton rounded-full" />}>
-            <CategoryBar />
-          </Suspense>
-        </div>
-      </div>
+  const activeCategorySlug = filters.category
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Sort & Filter Bar */}
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-stone-500">
-            {loading ? 'Loading...' : `${totalCount} listing${totalCount !== 1 ? 's' : ''} found`}
+  return (
+    <div className="min-h-screen bg-surface-50">
+      {/* Editorial Header */}
+      <header className="relative overflow-hidden bg-surface-100/60 border-b border-surface-200/70">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_60%_at_20%_0%,rgba(93,154,106,0.10),transparent_60%)]" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-10">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div>
+              <div className="section-eyebrow">The marketplace</div>
+              <h1 className="font-display text-display-lg text-surface-ink text-balance">
+                Browse livestock{' '}
+                <span className="italic text-primary-700">from verified farms.</span>
+              </h1>
+              <p className="mt-3 max-w-xl text-surface-500 text-[15px] leading-relaxed">
+                Handpicked, health-verified animals from pan-India sellers.
+                Every listing is vetted before it goes live.
+              </p>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-6 shrink-0">
+              <div>
+                <p className="font-display text-2xl text-surface-ink tabular">
+                  {loading ? '—' : totalCount.toLocaleString()}
+                </p>
+                <p className="text-[11px] uppercase tracking-widest-plus text-surface-500 mt-0.5">
+                  Listings live
+                </p>
+              </div>
+              <div className="w-px h-10 bg-surface-200" />
+              <div>
+                <p className="font-display text-2xl text-surface-ink tabular">100%</p>
+                <p className="text-[11px] uppercase tracking-widest-plus text-surface-500 mt-0.5">
+                  Verified sellers
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Category scroller */}
+          {categories.length > 0 && (
+            <div className="mt-10 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto scrollbar-hide">
+              <div className="flex items-center gap-2 min-w-max pb-1">
+                <button
+                  onClick={() => updateFilter('category', '')}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                    !activeCategorySlug
+                      ? 'bg-surface-ink text-white border-surface-ink'
+                      : 'bg-white text-surface-600 border-surface-200 hover:border-surface-400'
+                  }`}
+                >
+                  All
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => updateFilter('category', cat.slug)}
+                    className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                      activeCategorySlug === cat.slug
+                        ? 'bg-surface-ink text-white border-surface-ink'
+                        : 'bg-white text-surface-600 border-surface-200 hover:border-surface-400'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-20">
+        {/* Result bar */}
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <p className="text-sm text-surface-500">
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 bg-primary-500 rounded-full animate-pulse" />
+                Loading listings…
+              </span>
+            ) : (
+              <>
+                <span className="font-semibold text-surface-ink tabular">{totalCount}</span>
+                {' '}listing{totalCount !== 1 ? 's' : ''} found
+              </>
+            )}
           </p>
-          <div className="flex items-center gap-3">
-            <select
-              value={filters.sort}
-              onChange={(e) => updateFilter('sort', e.target.value)}
-              className="text-sm bg-white border border-stone-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="latest">Latest First</option>
-              <option value="price_asc">Price: Low ΓåÆ High</option>
-              <option value="price_desc">Price: High ΓåÆ Low</option>
-            </select>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white border border-surface-200 rounded-full">
+              <span className="text-[11px] uppercase tracking-widest-plus text-surface-500">Sort</span>
+              <select
+                value={filters.sort}
+                onChange={(e) => updateFilter('sort', e.target.value)}
+                className="text-sm font-semibold text-surface-ink bg-transparent focus:outline-none cursor-pointer"
+              >
+                <option value="latest">Latest</option>
+                <option value="price_asc">Price: low → high</option>
+                <option value="price_desc">Price: high → low</option>
+              </select>
+            </div>
             <button
               onClick={() => setMobileFiltersOpen(true)}
-              className="lg:hidden flex items-center gap-1.5 px-3 py-2 bg-white border border-stone-200 
-                rounded-xl text-sm font-medium text-stone-600 hover:bg-stone-50"
+              className="lg:hidden inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-surface-200
+                rounded-full text-sm font-semibold text-surface-ink hover:border-surface-400 transition-all"
             >
               <SlidersHorizontal className="w-4 h-4" />
               Filters
@@ -382,14 +488,51 @@ function ListingsContent() {
           </div>
         </div>
 
+        {/* Active filter chips */}
+        {activeChips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            {activeChips.map(chip => (
+              <button
+                key={chip.key}
+                onClick={() => updateFilter(chip.key, '')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                  bg-primary-50 text-primary-800 text-xs font-semibold border border-primary-100
+                  hover:bg-primary-100 transition-all group"
+              >
+                <span className="capitalize">{chip.label}</span>
+                <X className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+              </button>
+            ))}
+            <button
+              onClick={clearFilters}
+              className="text-xs font-semibold text-red-600 hover:text-red-700 underline underline-offset-2"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-8">
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-72 shrink-0">
-            <div className="sticky top-24 bg-white rounded-2xl border border-stone-100 p-5 shadow-sm">
-              <h3 className="font-semibold text-stone-800 mb-4 flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4" /> Filters
-              </h3>
-              <FilterPanel />
+            <div className="sticky top-24">
+              <div className="bg-white border border-surface-200/70 rounded-3xl p-6 shadow-soft">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-display text-lg text-surface-ink flex items-center gap-2">
+                    <SlidersHorizontal className="w-4 h-4 text-primary-700" />
+                    Refine
+                  </h3>
+                  {hasActiveFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="text-[11px] uppercase tracking-widest-plus text-red-500 font-semibold hover:text-red-600"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <FilterPanel />
+              </div>
             </div>
           </aside>
 
@@ -403,11 +546,11 @@ function ListingsContent() {
               currentUserId={user?.id}
               columns="grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
               emptyTitle="No listings match your filters"
-              emptyDescription="Try adjusting your filters to find what you're looking for."
+              emptyDescription="Try adjusting the price range, location, or clearing filters."
               emptyAction={
                 hasActiveFilters ? (
                   <button onClick={clearFilters} className="btn-primary text-sm px-5 py-2.5">
-                    Clear Filters
+                    Clear filters
                   </button>
                 ) : undefined
               }
@@ -415,25 +558,33 @@ function ListingsContent() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
+              <div className="flex items-center justify-between mt-12 pt-8 border-t border-surface-200/70">
                 <button
                   onClick={() => updateFilter('page', String(filters.page - 1))}
                   disabled={filters.page <= 1}
-                  className="px-4 py-2 text-sm font-medium bg-white border border-stone-200 rounded-xl 
-                    hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold bg-white border border-surface-200
+                    rounded-full hover:border-surface-ink hover:bg-surface-ink hover:text-white transition-all
+                    disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-surface-ink disabled:hover:border-surface-200"
                 >
-                  Previous
+                  <ArrowRight className="w-4 h-4 rotate-180" />
+                  <span className="hidden sm:inline">Previous</span>
                 </button>
-                <span className="px-4 py-2 text-sm text-stone-600">
-                  Page {filters.page} of {totalPages}
-                </span>
+
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-display text-xl text-surface-ink tabular">{filters.page}</span>
+                  <span className="text-surface-400">/</span>
+                  <span className="text-surface-500 tabular">{totalPages}</span>
+                </div>
+
                 <button
                   onClick={() => updateFilter('page', String(filters.page + 1))}
                   disabled={filters.page >= totalPages}
-                  className="px-4 py-2 text-sm font-medium bg-white border border-stone-200 rounded-xl 
-                    hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold bg-white border border-surface-200
+                    rounded-full hover:border-surface-ink hover:bg-surface-ink hover:text-white transition-all
+                    disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-surface-ink disabled:hover:border-surface-200"
                 >
-                  Next
+                  <span className="hidden sm:inline">Next</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -444,27 +595,30 @@ function ListingsContent() {
       {/* Mobile Filters Bottom Sheet */}
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] 
+          <div className="absolute inset-0 bg-surface-ink/50 backdrop-blur-sm" onClick={() => setMobileFiltersOpen(false)} />
+          <div className="absolute bottom-0 left-0 right-0 bg-surface-50 rounded-t-3xl max-h-[88vh]
             overflow-y-auto bottom-sheet-enter">
-            <div className="sticky top-0 bg-white px-6 py-4 border-b border-stone-100 flex items-center justify-between">
-              <h3 className="font-semibold text-stone-800">Filters</h3>
+            <div className="sticky top-0 z-10 bg-surface-50/95 backdrop-blur-xl px-6 py-4 border-b border-surface-200/60 flex items-center justify-between">
+              <div>
+                <p className="eyebrow text-[10px]">Refine</p>
+                <h3 className="font-display text-xl text-surface-ink">Filters</h3>
+              </div>
               <button
                 onClick={() => setMobileFiltersOpen(false)}
-                className="p-2 text-stone-400 hover:text-stone-600 rounded-xl"
+                className="w-9 h-9 rounded-full bg-white border border-surface-200 flex items-center justify-center text-surface-500 hover:bg-surface-100"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="p-6">
               <FilterPanel />
             </div>
-            <div className="sticky bottom-0 bg-white px-6 py-4 border-t border-stone-100">
+            <div className="sticky bottom-0 bg-surface-50/95 backdrop-blur-xl px-6 py-4 border-t border-surface-200/60">
               <button
                 onClick={() => setMobileFiltersOpen(false)}
                 className="w-full btn-primary"
               >
-                Show {totalCount} Results
+                Show {totalCount} result{totalCount !== 1 ? 's' : ''}
               </button>
             </div>
           </div>

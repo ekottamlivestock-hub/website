@@ -3,20 +3,25 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Heart, MapPin } from 'lucide-react'
+import { Heart, MapPin, ArrowUpRight, ShieldCheck } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { formatPrice, formatAge, getCategoryEmoji } from '@/lib/helpers'
+import { formatPrice, formatAge } from '@/lib/helpers'
 import toast from 'react-hot-toast'
 
-export default function ListingCard({ listing, showWishlist = true, isWishlisted = false, onWishlistChange, currentUserId }) {
+export default function ListingCard({
+  listing,
+  showWishlist = true,
+  isWishlisted = false,
+  onWishlistChange,
+  currentUserId,
+}) {
   const [wishlisted, setWishlisted] = useState(isWishlisted)
   const [wishlistLoading, setWishlistLoading] = useState(false)
 
-  const thumbnail = listing?.listing_media?.[0]?.url || listing?.media?.[0]?.url || '/images/1.jpg'
+  const thumbnail   = listing?.listing_media?.[0]?.url || listing?.media?.[0]?.url || '/images/1.jpg'
   const categoryName = listing?.animal_categories?.name || listing?.category_name || ''
-  const categorySlug = listing?.animal_categories?.slug || listing?.category_slug || ''
-  const sellerName = listing?.profiles?.full_name || listing?.seller_name || 'Seller'
-  const sellerAvatar = listing?.profiles?.avatar_url || listing?.seller_avatar
+  const sellerName   = listing?.profiles?.full_name || listing?.seller_name || 'Verified Seller'
+  const isVerified   = listing?.profiles?.is_verified ?? true // default to verified since we gate listings
 
   const toggleWishlist = async (e) => {
     e.preventDefault()
@@ -29,7 +34,7 @@ export default function ListingCard({ listing, showWishlist = true, isWishlisted
 
     setWishlistLoading(true)
     const newState = !wishlisted
-    setWishlisted(newState) // Optimistic
+    setWishlisted(newState)
 
     try {
       if (newState) {
@@ -37,7 +42,7 @@ export default function ListingCard({ listing, showWishlist = true, isWishlisted
           .from('wishlists')
           .insert({ user_id: currentUserId, listing_id: listing.id })
         if (error) throw error
-        toast.success('Added to wishlist')
+        toast.success('Saved')
       } else {
         const { error } = await supabase
           .from('wishlists')
@@ -45,11 +50,11 @@ export default function ListingCard({ listing, showWishlist = true, isWishlisted
           .eq('user_id', currentUserId)
           .eq('listing_id', listing.id)
         if (error) throw error
-        toast.success('Removed from wishlist')
+        toast.success('Removed')
       }
       onWishlistChange?.(listing.id, newState)
-    } catch (err) {
-      setWishlisted(!newState) // Revert
+    } catch {
+      setWishlisted(!newState)
       toast.error('Failed to update wishlist')
     } finally {
       setWishlistLoading(false)
@@ -57,117 +62,130 @@ export default function ListingCard({ listing, showWishlist = true, isWishlisted
   }
 
   return (
-    <Link href={`/listings/${listing.id}`} className="group block">
-      <div className="bg-white rounded-2xl overflow-hidden border border-stone-100 
-        card-hover shadow-sm">
-        {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
+    <Link
+      href={`/listings/${listing.id}`}
+      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 rounded-3xl"
+    >
+      <article className="relative overflow-hidden rounded-3xl bg-white border border-surface-200/70
+        transition-all duration-500 ease-out group-hover:border-surface-300 group-hover:shadow-lift">
+        {/* Image frame */}
+        <div className="relative aspect-[5/4] overflow-hidden bg-surface-100">
           <Image
             src={thumbnail}
             alt={listing.title || 'Animal listing'}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
 
-          {/* Category Badge */}
-          {categoryName && (
-            <span className="absolute top-3 left-3 px-2.5 py-1 bg-white/90 backdrop-blur-sm 
-              rounded-full text-xs font-semibold text-stone-700 shadow-sm">
-              {getCategoryEmoji(categorySlug)} {categoryName}
-            </span>
-          )}
+          {/* Top gradient so badges stay legible on bright photos */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24
+            bg-gradient-to-b from-black/35 via-black/5 to-transparent" />
 
-          {/* Wishlist Button */}
+          {/* Category + status */}
+          <div className="absolute top-3 left-3 flex items-center gap-2">
+            {categoryName && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                bg-white/95 backdrop-blur-sm text-[11px] font-semibold text-surface-ink
+                shadow-soft tracking-wide">
+                {categoryName}
+              </span>
+            )}
+            {listing.price_type === 'auction' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                bg-surface-ink/90 backdrop-blur-sm text-[11px] font-semibold text-white tracking-wide">
+                Auction
+              </span>
+            )}
+          </div>
+
+          {/* Wishlist */}
           {showWishlist && (
             <button
               onClick={toggleWishlist}
               disabled={wishlistLoading}
-              className={`absolute top-3 right-3 w-9 h-9 flex items-center justify-center 
-                rounded-full shadow-sm transition-all duration-200 ${
-                wishlisted
-                  ? 'bg-red-500 text-white hover:bg-red-600'
-                  : 'bg-white/90 backdrop-blur-sm text-stone-400 hover:text-red-500 hover:bg-white'
-              }`}
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+              className={`absolute top-3 right-3 w-9 h-9 flex items-center justify-center
+                rounded-full backdrop-blur-sm transition-all duration-200
+                ${wishlisted
+                  ? 'bg-accent-500 text-white shadow-lift'
+                  : 'bg-white/85 text-surface-ink hover:bg-white shadow-soft hover:shadow-lift'}`}
             >
               <Heart className={`w-4 h-4 ${wishlisted ? 'fill-current' : ''}`} />
             </button>
           )}
 
-          {/* Sold Overlay */}
+          {/* Sold overlay */}
           {listing.status === 'sold' && (
-            <div className="absolute inset-0 bg-stone-900/60 flex items-center justify-center">
-              <span className="px-4 py-2 bg-blue-500 text-white font-bold rounded-full text-sm">SOLD</span>
+            <div className="absolute inset-0 bg-surface-ink/70 flex items-center justify-center backdrop-blur-[2px]">
+              <span className="font-display text-2xl italic text-white/95 tracking-wide">Sold</span>
             </div>
           )}
+
+          {/* View arrow reveal */}
+          <div className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-white text-surface-ink
+            flex items-center justify-center shadow-lift opacity-0 translate-y-2
+            transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
+            <ArrowUpRight className="w-4 h-4" strokeWidth={2.25} />
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-4">
-          {/* Title */}
-          <h3 className="font-semibold text-stone-800 line-clamp-2 text-sm leading-snug mb-2 
-            group-hover:text-primary-600 transition-colors">
-            {listing.title}
-          </h3>
-
-          {/* Price */}
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-lg font-bold text-primary-600">
-              {formatPrice(listing.price)}
-            </span>
-            {listing.price_type === 'negotiable' && (
-              <span className="text-[10px] font-medium px-2 py-0.5 bg-secondary-50 text-secondary-700 rounded-full">
-                Negotiable
-              </span>
-            )}
+        <div className="p-5">
+          {/* Title + price row */}
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-display text-[1.2rem] leading-snug text-surface-ink text-balance
+              line-clamp-2 pr-1 transition-colors group-hover:text-primary-700">
+              {listing.title}
+            </h3>
+            <div className="shrink-0 text-right">
+              <div className="font-display text-[1.15rem] text-primary-800 tabular tracking-tight">
+                {formatPrice(listing.price)}
+              </div>
+              {listing.price_type === 'negotiable' && (
+                <div className="text-[10px] font-semibold tracking-wider uppercase text-secondary-700 mt-0.5">
+                  Negotiable
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          {/* Meta row */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-surface-500">
             {listing.age_value && listing.age_unit && (
-              <span className="text-[10px] px-2 py-0.5 bg-stone-100 text-stone-600 rounded-full">
-                {formatAge(listing.age_value, listing.age_unit)}
-              </span>
+              <span>{formatAge(listing.age_value, listing.age_unit)}</span>
             )}
             {listing.gender && listing.gender !== 'unknown' && (
-              <span className="text-[10px] px-2 py-0.5 bg-stone-100 text-stone-600 rounded-full capitalize">
-                {listing.gender}
-              </span>
+              <>
+                <span className="w-1 h-1 rounded-full bg-surface-300" />
+                <span className="capitalize">{listing.gender}</span>
+              </>
             )}
-            {listing.health_status && listing.health_status !== 'unknown' && (
-              <span className="text-[10px] px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full capitalize">
-                {listing.health_status}
-              </span>
+            {listing.weight_kg && (
+              <>
+                <span className="w-1 h-1 rounded-full bg-surface-300" />
+                <span>{listing.weight_kg} kg</span>
+              </>
             )}
           </div>
 
-          {/* Location */}
-          {(listing.city || listing.state) && (
-            <div className="flex items-center gap-1 text-xs text-stone-400 mb-3">
-              <MapPin className="w-3 h-3" />
-              <span>{[listing.city, listing.state].filter(Boolean).join(', ')}</span>
-            </div>
-          )}
-
-          {/* Seller */}
-          <div className="flex items-center gap-2 pt-3 border-t border-stone-100">
-            {sellerAvatar ? (
-              <Image
-                src={sellerAvatar}
-                alt={sellerName}
-                width={20}
-                height={20}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-5 h-5 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-[8px] font-bold text-primary-600">{sellerName[0]}</span>
+          {/* Footer */}
+          <div className="mt-4 pt-4 border-t border-surface-200/70 flex items-center justify-between">
+            {(listing.city || listing.state) ? (
+              <div className="flex items-center gap-1.5 text-[12px] text-surface-500 truncate">
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{[listing.city, listing.state].filter(Boolean).join(', ')}</span>
               </div>
+            ) : (
+              <span className="text-[12px] text-surface-500 truncate">{sellerName}</span>
             )}
-            <span className="text-xs text-stone-500 truncate">{sellerName}</span>
+            <div className="flex items-center gap-1 text-[11px] font-semibold text-primary-700 shrink-0">
+              {isVerified && <ShieldCheck className="w-3.5 h-3.5" strokeWidth={2.25} />}
+              <span className="tracking-wide uppercase">Verified</span>
+            </div>
           </div>
         </div>
-      </div>
+      </article>
     </Link>
   )
 }
@@ -175,20 +193,21 @@ export default function ListingCard({ listing, showWishlist = true, isWishlisted
 // Skeleton variant for loading states
 export function ListingCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-stone-100 shadow-sm">
-      <div className="aspect-[4/3] skeleton" />
-      <div className="p-4 space-y-3">
-        <div className="h-4 skeleton w-3/4" />
-        <div className="h-4 skeleton w-1/2" />
-        <div className="h-6 skeleton w-1/3" />
-        <div className="flex gap-1.5">
-          <div className="h-5 skeleton w-14 rounded-full" />
-          <div className="h-5 skeleton w-12 rounded-full" />
+    <div className="rounded-3xl overflow-hidden border border-surface-200/70 bg-white">
+      <div className="aspect-[5/4] skeleton rounded-none" />
+      <div className="p-5 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="h-4 skeleton w-3/5" />
+          <div className="h-4 skeleton w-16" />
         </div>
-        <div className="h-3 skeleton w-2/3" />
-        <div className="flex items-center gap-2 pt-3 border-t border-stone-100">
-          <div className="w-5 h-5 skeleton rounded-full" />
-          <div className="h-3 skeleton w-20" />
+        <div className="flex gap-2">
+          <div className="h-3 skeleton w-12" />
+          <div className="h-3 skeleton w-14" />
+        </div>
+        <div className="h-px bg-surface-200/70" />
+        <div className="flex items-center justify-between">
+          <div className="h-3 skeleton w-28" />
+          <div className="h-3 skeleton w-16" />
         </div>
       </div>
     </div>
