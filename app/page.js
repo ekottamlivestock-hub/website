@@ -124,7 +124,7 @@ function HomePageContent() {
   return (
     <div className="min-h-screen">
       {/* ---------------- HERO ---------------- */}
-      <section className="relative overflow-hidden bg-surface-50">
+      <section className="relative overflow-hidden bg-primary-900">
         {/* Background image with parallax-feel fade */}
         <div className="absolute inset-0">
           {heroImages.map((src, i) => (
@@ -145,29 +145,31 @@ function HomePageContent() {
               />
             </div>
           ))}
-          {/* Editorial overlay: dark at bottom, cream at top for text contrast */}
-          <div className="absolute inset-0 bg-gradient-to-b from-surface-50/40 via-surface-50/10 to-surface-ink/55" />
-          <div className="absolute inset-0 bg-gradient-to-r from-surface-50/85 via-surface-50/20 to-transparent" />
-          {/* Grain */}
-          <div className="absolute inset-0 bg-noise opacity-[0.18] mix-blend-overlay pointer-events-none" />
+          {/* Editorial dark overlays for white-text readability */}
+          {/* 1. Strong left scrim where headline lives */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-900/85 via-primary-900/55 to-primary-900/20" />
+          {/* 2. Top-to-bottom vignette that anchors the navbar edge */}
+          <div className="absolute inset-0 bg-gradient-to-b from-primary-900/60 via-transparent to-primary-900/70" />
+          {/* 3. Fine grain */}
+          <div className="absolute inset-0 bg-noise opacity-[0.22] mix-blend-overlay pointer-events-none" />
         </div>
 
-        <div className="relative page-section pt-20 sm:pt-28 lg:pt-32 pb-24 sm:pb-32 lg:pb-40">
+        <div className="relative page-section pt-28 sm:pt-32 lg:pt-40 pb-24 sm:pb-32 lg:pb-40">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
-              bg-white/90 backdrop-blur-sm border border-surface-200/80 text-[11px] font-semibold
-              uppercase tracking-widest-plus text-primary-800 shadow-soft animate-reveal">
-              <Sparkles className="w-3.5 h-3.5 text-secondary-500" />
+              bg-white/10 backdrop-blur-xl border border-white/25 text-[11px] font-semibold
+              uppercase tracking-widest-plus text-secondary-200 shadow-soft animate-reveal">
+              <Sparkles className="w-3.5 h-3.5 text-secondary-300" />
               India&apos;s trusted livestock marketplace
             </div>
 
-            <h1 className="mt-6 font-display text-display-2xl text-surface-ink animate-reveal [animation-delay:80ms]">
+            <h1 className="mt-6 font-display text-display-2xl text-white animate-reveal [animation-delay:80ms] drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)]">
               Livestock trading,
               <br />
-              <span className="italic text-primary-800">reimagined.</span>
+              <span className="italic text-secondary-300">reimagined.</span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-lg text-surface-600 leading-relaxed animate-reveal [animation-delay:160ms]">
+            <p className="mt-6 max-w-xl text-lg text-white/85 leading-relaxed animate-reveal [animation-delay:160ms]">
               Buy and sell cattle, goats, buffaloes and more &mdash; direct from verified farmers
               across 28 states. No middlemen. Transparent pricing. Real relationships.
             </p>
@@ -177,13 +179,13 @@ function HomePageContent() {
                 placeholder="Search Murrah buffalo, Gir cow, Boer goat…"
                 className="max-w-2xl"
               />
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-surface-600">
-                <span className="font-semibold text-surface-ink">Trending:</span>
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/75">
+                <span className="font-semibold text-white">Trending:</span>
                 {['Cows', 'Goats', 'Buffaloes', 'Hens', 'Sheep'].map((t) => (
                   <Link
                     key={t}
                     href={`/listings?q=${encodeURIComponent(t.toLowerCase())}`}
-                    className="underline-offset-4 hover:underline hover:text-primary-800 transition-colors"
+                    className="underline-offset-4 hover:underline hover:text-secondary-200 transition-colors"
                   >
                     {t}
                   </Link>
@@ -194,7 +196,7 @@ function HomePageContent() {
 
           {/* Floating stat tile (desktop) */}
           <div className="hidden lg:block absolute right-8 xl:right-16 bottom-16 max-w-xs">
-            <div className="relative p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-surface-200 shadow-float animate-reveal [animation-delay:320ms]">
+            <div className="relative p-6 rounded-3xl bg-white/95 backdrop-blur-xl border border-white/60 shadow-float animate-reveal [animation-delay:320ms]">
               <div className="flex items-start gap-3">
                 <span className="shrink-0 w-10 h-10 rounded-full bg-primary-100 text-primary-800 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5" />
@@ -221,10 +223,21 @@ function HomePageContent() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Decorative bottom hairline */}
-        <div className="relative hairline" />
+          {/* Hero slide indicator dots */}
+          <div className="hidden sm:flex absolute bottom-8 left-1/2 -translate-x-1/2 lg:left-auto lg:translate-x-0 lg:bottom-8 lg:right-8 xl:right-16 items-center gap-1.5">
+            {heroImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setHeroIndex(i)}
+                aria-label={`Go to slide ${i + 1}`}
+                className={`h-1 rounded-full transition-all ${
+                  i === heroIndex ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ---------------- STATS MARQUEE ---------------- */}
