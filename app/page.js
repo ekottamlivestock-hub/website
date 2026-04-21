@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getCategoryEmoji } from '@/lib/helpers'
+import { getCategoryEmoji, COMPANY_CONTACT } from '@/lib/helpers'
 import SearchBar from '@/components/SearchBar'
 import ListingGrid from '@/components/ListingGrid'
 import toast from 'react-hot-toast'
@@ -461,8 +461,8 @@ function HomePageContent() {
               hover:bg-green-50 transition-all shadow-lg hover:shadow-xl">
               Post Ad for Free
             </Link>
-            <a href="https://wa.me/919391609598" target="_blank" rel="noopener noreferrer"
-              className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-base 
+            <a href={COMPANY_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer"
+              className="px-8 py-4 border-2 border-white text-white rounded-full font-bold text-base
                 hover:bg-white/10 transition-all">
               Contact Sales
             </a>

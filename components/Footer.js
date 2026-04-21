@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { Phone, Mail, Globe, MapPin, MessageCircle } from 'lucide-react'
 import KottamLogo from './KottamLogo'
+import { COMPANY_CONTACT } from '@/lib/helpers'
 
 const WhatsAppIcon = ({ className }) => (
   <svg 
@@ -22,14 +23,14 @@ export default function Footer() {
       <div className="border-b border-stone-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
-            <a href="tel:+919391609598" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
-              <Phone className="w-4 h-4" /> +91 93916 09598
+            <a href={`tel:${COMPANY_CONTACT.phoneTel}`} className="flex items-center gap-2 hover:text-primary-400 transition-colors">
+              <Phone className="w-4 h-4" /> {COMPANY_CONTACT.phoneDisplay}
             </a>
-            <a href="mailto:info@ekottam.in" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
-              <Mail className="w-4 h-4" /> info@ekottam.in
+            <a href={`mailto:${COMPANY_CONTACT.email}`} className="flex items-center gap-2 hover:text-primary-400 transition-colors">
+              <Mail className="w-4 h-4" /> {COMPANY_CONTACT.email}
             </a>
-            <a href="https://ekottam.vercel.app" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
-              <Globe className="w-4 h-4" /> ekottam.vercel.app
+            <a href={COMPANY_CONTACT.address.mapUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary-400 transition-colors">
+              <MapPin className="w-4 h-4" /> Hyderabad, Telangana
             </a>
           </div>
         </div>
@@ -47,13 +48,29 @@ export default function Footer() {
               </div>
             </Link>
             <p className="mt-3 text-sm text-stone-400 leading-relaxed">
-              Pan-India platform to buy and sell all kinds of livestock. 
+              Pan-India platform to buy and sell all kinds of livestock.
               Empowering rural entrepreneurs through technology.
             </p>
+            <address className="not-italic mt-4 text-sm text-stone-400 leading-relaxed">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary-400" />
+                <a
+                  href={COMPANY_CONTACT.address.mapUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary-400 transition-colors"
+                >
+                  {COMPANY_CONTACT.address.line1}<br />
+                  {COMPANY_CONTACT.address.line2}<br />
+                  {COMPANY_CONTACT.address.city}, {COMPANY_CONTACT.address.state} {COMPANY_CONTACT.address.pincode}
+                </a>
+              </div>
+            </address>
             <div className="mt-4 flex items-center gap-3">
-              <a href="https://wa.me/919391609598" target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 flex items-center justify-center bg-stone-800 rounded-full 
-                  hover:bg-green-600 transition-all text-stone-400 hover:text-white">
+              <a href={COMPANY_CONTACT.whatsappUrl} target="_blank" rel="noopener noreferrer"
+                className="w-9 h-9 flex items-center justify-center bg-stone-800 rounded-full
+                  hover:bg-green-600 transition-all text-stone-400 hover:text-white"
+                aria-label="WhatsApp ekottam">
                 <WhatsAppIcon className="w-4 h-4" />
               </a>
             </div>
@@ -110,11 +127,11 @@ export default function Footer() {
 
       {/* Floating WhatsApp */}
       <a
-        href="https://wa.me/919391609598"
+        href={COMPANY_CONTACT.whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 text-white rounded-full 
-          flex items-center justify-center shadow-lg shadow-green-500/30 hover:bg-green-600 
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-green-500 text-white rounded-full
+          flex items-center justify-center shadow-lg shadow-green-500/30 hover:bg-green-600
           hover:scale-110 transition-all duration-300"
         aria-label="Chat on WhatsApp"
       >
