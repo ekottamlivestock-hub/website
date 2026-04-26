@@ -13,11 +13,9 @@ import NotificationBell from './NotificationBell'
 import LanguageSwitcher from './LanguageSwitcher'
 import KottamLogo from './KottamLogo'
 
-const NAV_LINKS = [
-  { href: '/listings', label: 'Browse' },
-  { href: '/#how-it-works', label: 'How it works' },
-  { href: '/#schemes', label: 'Schemes' },
-]
+// Top-level nav has been intentionally pared back to a single CTA path:
+// "Become a seller" → /seller/apply, with "Sign in" as the secondary action.
+// Other pages remain reachable via the user dropdown / footer / search.
 
 export default function Navbar() {
   const [user, setUser] = useState(null)
@@ -129,28 +127,9 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop nav links */}
-          <div className="hidden lg:flex items-center gap-1 flex-1 justify-center">
-            {NAV_LINKS.map((link) => {
-              const active = pathname === link.href || (link.href === '/listings' && pathname?.startsWith('/listings'))
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                    active
-                      ? 'text-surface-ink bg-surface-100'
-                      : 'text-surface-500 hover:text-surface-ink hover:bg-surface-100/60'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              )
-            })}
-          </div>
-
-          {/* Desktop search (compact) */}
-          <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 lg:flex-initial max-w-xs ml-0 lg:ml-4 mr-4">
+          {/* Desktop search (compact) — pushed to the right of the logo so the
+              header stays an open lane to the seller CTA. */}
+          <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 max-w-md ml-6 mr-4">
             <div className="relative w-full">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
               <input
@@ -172,18 +151,29 @@ export default function Navbar() {
             <LanguageSwitcher />
 
             {!user ? (
-              <button
-                onClick={handleSignIn}
-                className="btn-primary px-5 py-2.5 text-sm"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-                Sign in
-              </button>
+              <>
+                <Link
+                  href="/seller/apply"
+                  className="btn-primary px-5 py-2.5 text-sm animate-pulse-glow"
+                >
+                  <Store className="w-4 h-4" strokeWidth={2} />
+                  Become a seller
+                </Link>
+                <button
+                  onClick={handleSignIn}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold
+                    rounded-full text-surface-ink border border-surface-200/80 bg-white/80
+                    hover:bg-white hover:border-primary-300 hover:text-primary-800 transition-all"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Sign in
+                </button>
+              </>
             ) : (
               <>
                 {isSeller && (
@@ -322,26 +312,31 @@ export default function Navbar() {
             </div>
           </form>
 
-          <div className="px-4 pb-6 space-y-1">
-            {NAV_LINKS.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="block px-4 py-3 text-sm font-medium text-surface-ink hover:bg-white rounded-xl"
-              >
-                {link.label}
-              </Link>
-            ))}
-
-            <div className="h-px bg-surface-200/70 my-3" />
-
+          <div className="px-4 pb-6 space-y-2">
             {!user ? (
-              <button
-                onClick={handleSignIn}
-                className="w-full btn-primary"
-              >
-                Sign in with Google
-              </button>
+              <>
+                <Link
+                  href="/seller/apply"
+                  className="w-full btn-primary animate-pulse-glow justify-center"
+                >
+                  <Store className="w-4 h-4" strokeWidth={2} />
+                  Become a seller
+                </Link>
+                <button
+                  onClick={handleSignIn}
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3
+                    text-sm font-semibold rounded-full text-surface-ink border border-surface-200/80
+                    bg-white hover:bg-surface-100 transition-colors"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Sign in with Google
+                </button>
+              </>
             ) : (
               <>
                 {isSeller && (

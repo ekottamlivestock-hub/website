@@ -11,10 +11,8 @@ import ListingGrid from '@/components/ListingGrid'
 import BreedExplorer from '@/components/BreedExplorer'
 import toast from 'react-hot-toast'
 import {
-  ShieldCheck, Truck, Users, UserPlus,
-  UploadCloud, MessageSquare, Star,
-  Landmark, Award, Building2, TrendingUp, CreditCard, Shield,
-  ChevronRight, Sparkles, ArrowRight,
+  ShieldCheck, Truck, Users, Star,
+  ChevronRight, Sparkles, ArrowRight, Store,
 } from 'lucide-react'
 
 export default function HomePage() {
@@ -125,29 +123,43 @@ function HomePageContent() {
   return (
     <div className="min-h-screen">
       {/* ---------------- HERO ---------------- */}
+      {/* Fills the visible viewport beneath the fixed 4rem navbar so the
+          stats marquee never peeks above the fold on phones. dvh tracks the
+          live mobile viewport (browser chrome show/hide) better than vh. */}
       <section className="relative overflow-hidden bg-primary-900
-        min-h-[640px] sm:min-h-[680px] lg:min-h-[720px] flex items-stretch">
-        {/* Background image with parallax-feel fade. object-position keeps the
-            animal centred on portrait phone screens where edges otherwise crop. */}
+        min-h-[calc(100dvh-4rem)] flex items-stretch">
+        {/* Background images with parallax-feel fade + Ken Burns zoom on the
+            active slide. object-position keeps the animal centred on portrait
+            phone screens where edges otherwise crop. */}
         <div className="absolute inset-0">
-          {heroImages.map((src, i) => (
-            <div
-              key={src}
-              className={`absolute inset-0 transition-opacity duration-[1600ms] ease-in-out ${
-                i === heroIndex ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <Image
-                src={src}
-                alt=""
-                fill
-                sizes="100vw"
-                quality={80}
-                priority={i === 0}
-                className="object-cover object-[center_30%] sm:object-center"
-              />
-            </div>
-          ))}
+          {heroImages.map((src, i) => {
+            const isActive = i === heroIndex
+            return (
+              <div
+                key={src}
+                className={`absolute inset-0 transition-opacity duration-[1600ms] ease-in-out ${
+                  isActive ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <div
+                  // re-key the inner wrapper so the Ken Burns animation restarts
+                  // every time this slide becomes active.
+                  key={`kb-${heroIndex}-${i}`}
+                  className={`absolute inset-0 ${isActive ? 'animate-ken-burns' : ''}`}
+                >
+                  <Image
+                    src={src}
+                    alt=""
+                    fill
+                    sizes="100vw"
+                    quality={80}
+                    priority={i === 0}
+                    className="object-cover object-[center_30%] sm:object-center"
+                  />
+                </div>
+              </div>
+            )
+          })}
           {/* Editorial dark overlays for white-text readability */}
           {/* 1. Strong left scrim where headline lives */}
           <div className="absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-900/60 to-primary-900/25" />
@@ -312,39 +324,6 @@ function HomePageContent() {
         />
       </section>
 
-      {/* ---------------- HOW IT WORKS ---------------- */}
-      <section className="py-20 sm:py-28 mt-16 bg-white border-y border-surface-200/70" id="how-it-works">
-        <div className="page-section">
-          <div className="max-w-3xl mb-14">
-            <div className="section-eyebrow">The process</div>
-            <h2 className="section-heading">A simple, honest way to trade.</h2>
-            <p className="mt-4 text-surface-600 leading-relaxed">
-              Four steps &mdash; from listing to delivery &mdash; designed around how farmers
-              actually work. No paperwork mazes, no unnecessary commissions.
-            </p>
-          </div>
-
-          <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-            {[
-              { icon: UserPlus,    n: '01', title: 'Register & verify', desc: 'Create a free account and complete KYC to build trust with buyers.' },
-              { icon: UploadCloud, n: '02', title: 'List your animal',  desc: 'Upload photos, breed details, health records, and your price.' },
-              { icon: MessageSquare, n: '03', title: 'Connect & negotiate', desc: 'Buyers contact ekottam directly to discuss terms and pricing.' },
-              { icon: Truck,       n: '04', title: 'Safe delivery',     desc: 'Payment is secured and transport logistics arranged seamlessly.' },
-            ].map((step, i) => (
-              <li key={i} className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="font-display text-sm text-surface-400 tabular tracking-wider">{step.n}</span>
-                  <span className="flex-1 h-px bg-surface-200" />
-                </div>
-                <step.icon className="w-8 h-8 text-primary-700 mb-4" strokeWidth={1.5} />
-                <h3 className="font-display text-xl text-surface-ink mb-2">{step.title}</h3>
-                <p className="text-sm text-surface-500 leading-relaxed">{step.desc}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
       {/* ---------------- WHY ---------------- */}
       <section className="py-20 sm:py-28" id="why">
         <div className="page-section">
@@ -418,45 +397,6 @@ function HomePageContent() {
         </div>
       </section>
 
-      {/* ---------------- SCHEMES ---------------- */}
-      <section className="py-20 sm:py-28 bg-surface-ink text-white relative overflow-hidden" id="schemes">
-        <div className="absolute inset-0 bg-noise opacity-[0.08] pointer-events-none" />
-        <div className="page-section relative">
-          <div className="max-w-3xl mb-14">
-            <div className="eyebrow text-secondary-300">Financial support</div>
-            <h2 className="mt-3 font-display text-display-lg text-white text-balance">
-              Government schemes,<br />
-              <span className="italic text-secondary-300">matched to your farm.</span>
-            </h2>
-            <p className="mt-4 text-surface-300 leading-relaxed">
-              Grow your operation with central and state subsidies. We&apos;ll help you
-              navigate the paperwork.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { icon: Landmark,    title: 'National Livestock Mission', desc: 'Up to 50% capital subsidy (up to ₹50L) for poultry, sheep, goat, and piggery.' },
-              { icon: Award,       title: 'Rashtriya Gokul Mission',    desc: '₹3,400 Cr scheme for conservation of indigenous bovine breeds.' },
-              { icon: Building2,   title: 'NABARD DEDS',                desc: '25–33% back-ended capital subsidy for bankable dairy projects.' },
-              { icon: TrendingUp,  title: 'AHIDF',                      desc: '₹15,000 Cr fund with 3% interest subvention for animal husbandry.' },
-              { icon: CreditCard,  title: 'PM Kisan Credit Card',       desc: 'Working capital loans for livestock farmers at just 4% effective.' },
-              { icon: Shield,      title: 'PM Livestock Insurance',     desc: '50–70% premium subsidy protection against animal death.' },
-            ].map((scheme, i) => (
-              <div
-                key={i}
-                className="p-6 rounded-2xl bg-white/[0.04] backdrop-blur-sm border border-white/10
-                  hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300"
-              >
-                <scheme.icon className="w-7 h-7 text-secondary-300 mb-4" strokeWidth={1.5} />
-                <h3 className="font-display text-lg text-white mb-2">{scheme.title}</h3>
-                <p className="text-[13px] text-surface-300 leading-relaxed">{scheme.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ---------------- TESTIMONIALS ---------------- */}
       <section className="py-20 sm:py-28 page-section" id="testimonials">
         <div className="max-w-3xl mb-14">
@@ -499,22 +439,24 @@ function HomePageContent() {
                 <span className="italic text-secondary-300">already selling on ekottam.</span>
               </h2>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 lg:justify-end">
+            <div className="flex flex-col gap-3 lg:items-end">
               <Link
-                href="/sell"
-                className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-white text-surface-ink
-                  rounded-full font-semibold hover:bg-secondary-100 transition-all shadow-lift"
+                href="/seller/apply"
+                className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white
+                  text-surface-ink rounded-full font-semibold transition-all shadow-lift
+                  hover:bg-secondary-100 hover:-translate-y-0.5 animate-pulse-glow"
               >
-                Post ad for free <ArrowRight className="w-4 h-4" />
+                <Store className="w-4 h-4" strokeWidth={2} />
+                Become a seller
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <a
                 href={COMPANY_CONTACT.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-7 py-4 border border-white/40
-                  text-white rounded-full font-semibold hover:bg-white/10 transition-all"
+                className="text-xs font-semibold text-secondary-200 hover:text-white transition-colors"
               >
-                Talk to sales
+                or talk to us on WhatsApp →
               </a>
             </div>
           </div>
