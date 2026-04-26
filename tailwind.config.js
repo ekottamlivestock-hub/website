@@ -8,36 +8,44 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Forest / moss-green: richer and more grounded than the
-        // previous bright emerald. Darker mid-tones feel confident
-        // on cream surfaces.
+        // -------------------------------------------------------------
+        // PRIMARY — Pasture / sage green.
+        // Cooler, more pastoral than emerald. Reads "fresh dairy field"
+        // rather than "tech green". Mid-tones (500/600) carry CTAs.
+        // -------------------------------------------------------------
         primary: {
-          50:  '#f2f7f2',
-          100: '#dcebdd',
-          200: '#b9d5bc',
-          300: '#8ab893',
-          400: '#5d9a6a',
-          500: '#3f7d4f',
-          600: '#2f6540',
-          700: '#255034',
-          800: '#1f402c',
-          900: '#162d1f',
+          50:  '#f3f7f2',
+          100: '#e2ede0',
+          200: '#c2dabe',
+          300: '#94bf8d',
+          400: '#67a161',
+          500: '#468445',
+          600: '#356b36',
+          700: '#2a552d',
+          800: '#1f3f23',
+          900: '#142b18',
         },
-        // Warm amber / hay — used sparingly for price accents and
-        // "negotiable" / auction badges.
+        // -------------------------------------------------------------
+        // SECONDARY — Cream butter / hay. The dairy "warmth" anchor.
+        // 50–200 are surface tints (oatmilk / cream); 300–500 are
+        // accent fills used for prices, badges, golden hour CTAs.
+        // -------------------------------------------------------------
         secondary: {
-          50:  '#fdf8ee',
-          100: '#faeccb',
-          200: '#f4d88d',
-          300: '#edbf5a',
-          400: '#e5a537',
-          500: '#c88820',
-          600: '#a06817',
-          700: '#7a4f14',
-          800: '#553713',
-          900: '#38240f',
+          50:  '#fbf6ea',
+          100: '#f5ebd0',
+          200: '#ecd9a3',
+          300: '#dfc173',
+          400: '#cfa748',
+          500: '#b88a2b',
+          600: '#946d20',
+          700: '#705219',
+          800: '#4d3812',
+          900: '#2e220c',
         },
-        // Terracotta accent — for hover/focus glows and rare CTAs.
+        // -------------------------------------------------------------
+        // ACCENT — Terracotta / sunbaked clay. Used sparingly for
+        // hover-glows, wishlist heart, and rare emphasis.
+        // -------------------------------------------------------------
         accent: {
           50:  '#fbf1ec',
           100: '#f4dacc',
@@ -50,56 +58,82 @@ module.exports = {
           800: '#3d1d13',
           900: '#22100b',
         },
-        // Cream / bone surfaces — softer than stone-50 so cards
-        // feel elevated without heavy shadows.
+        // -------------------------------------------------------------
+        // SURFACE — Sand / bone / milk. The whole site sits on these.
+        // 50 is the page background (warm, never sterile); 100–200 are
+        // card backgrounds; 700+ are body text.
+        // -------------------------------------------------------------
         surface: {
           0:   '#ffffff',
-          50:  '#fbfaf7',
-          100: '#f5f3ec',
-          200: '#ebe7d9',
-          300: '#d9d3bf',
-          400: '#b9b19a',
-          500: '#8f8775',
-          600: '#6b6557',
-          700: '#4d483d',
-          800: '#33302a',
-          900: '#24221e',
-          ink: '#1a1a17',
+          50:  '#faf7f0',   // sand-cream page bg
+          100: '#f3eee2',   // oat
+          200: '#e7e0cd',   // dry hay
+          300: '#d2c8ad',
+          400: '#a89e83',
+          500: '#7e7560',
+          600: '#5c5544',
+          700: '#403b2f',
+          800: '#2a2620',
+          900: '#1c1a15',
+          ink: '#181612',
+        },
+        // -------------------------------------------------------------
+        // DAIRY — Branded utility tints to keep the "milk + meadow"
+        // language explicit at component sites (chips, gradients).
+        // -------------------------------------------------------------
+        dairy: {
+          milk:    '#fbfaf5',
+          cream:   '#f6efdc',
+          butter:  '#f1d98e',
+          oat:     '#e9dec0',
+          moss:    '#5d8a55',
+          forest:  '#2a552d',
+          terracotta: '#c76a48',
+          earth:   '#7c5a3a',
         },
       },
       fontFamily: {
-        sans:    ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        // Modern, friendly geometric sans for body + UI.
+        sans:    ['var(--font-jakarta)', 'Plus Jakarta Sans', 'Inter', 'system-ui', 'sans-serif'],
+        // Editorial serif for display headlines.
         display: ['var(--font-fraunces)', 'Fraunces', 'Georgia', 'serif'],
+        // Tech-leaning numeric for stats / prices (futuristic feel).
+        mono:    ['var(--font-jetbrains)', 'JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       fontSize: {
         // Editorial display scale — used for hero + section headings.
-        'display-2xl': ['clamp(3rem, 6vw + 1rem, 6rem)', { lineHeight: '0.95', letterSpacing: '-0.035em', fontWeight: '500' }],
-        'display-xl':  ['clamp(2.25rem, 4vw + 0.5rem, 4.25rem)', { lineHeight: '1', letterSpacing: '-0.03em', fontWeight: '500' }],
-        'display-lg':  ['clamp(1.75rem, 2.5vw + 0.5rem, 2.75rem)', { lineHeight: '1.05', letterSpacing: '-0.02em', fontWeight: '500' }],
-        'display-md':  ['1.75rem', { lineHeight: '1.1', letterSpacing: '-0.015em', fontWeight: '500' }],
-        'eyebrow':     ['0.75rem', { lineHeight: '1', letterSpacing: '0.18em', fontWeight: '600' }],
+        'display-2xl': ['clamp(2.75rem, 6vw + 0.5rem, 5.75rem)', { lineHeight: '0.95', letterSpacing: '-0.035em', fontWeight: '500' }],
+        'display-xl':  ['clamp(2rem, 4vw + 0.5rem, 4rem)', { lineHeight: '1', letterSpacing: '-0.03em', fontWeight: '500' }],
+        'display-lg':  ['clamp(1.65rem, 2.5vw + 0.5rem, 2.6rem)', { lineHeight: '1.05', letterSpacing: '-0.02em', fontWeight: '500' }],
+        'display-md':  ['1.65rem', { lineHeight: '1.1', letterSpacing: '-0.015em', fontWeight: '500' }],
+        'eyebrow':     ['0.7rem', { lineHeight: '1', letterSpacing: '0.22em', fontWeight: '700' }],
       },
       borderRadius: {
         'xl':  '0.875rem',
         '2xl': '1.25rem',
         '3xl': '1.75rem',
+        '4xl': '2.25rem',
       },
       boxShadow: {
         // Flat, sophisticated — avoids the default blurry "card drop".
-        'soft':    '0 1px 2px rgba(20, 26, 20, 0.04), 0 2px 6px rgba(20, 26, 20, 0.04)',
-        'lift':    '0 2px 4px rgba(20, 26, 20, 0.04), 0 10px 30px -8px rgba(20, 26, 20, 0.12)',
-        'float':   '0 6px 14px -6px rgba(20, 26, 20, 0.12), 0 22px 48px -12px rgba(20, 26, 20, 0.18)',
+        'soft':    '0 1px 2px rgba(28, 26, 21, 0.04), 0 2px 6px rgba(28, 26, 21, 0.04)',
+        'lift':    '0 2px 4px rgba(28, 26, 21, 0.04), 0 10px 30px -8px rgba(28, 26, 21, 0.12)',
+        'float':   '0 6px 14px -6px rgba(28, 26, 21, 0.12), 0 22px 48px -12px rgba(28, 26, 21, 0.18)',
+        'glow':    '0 0 0 1px rgba(70, 132, 69, 0.18), 0 18px 40px -16px rgba(70, 132, 69, 0.45)',
         'inner-soft': 'inset 0 1px 0 rgba(255, 255, 255, 0.6)',
       },
       animation: {
-        'skeleton':  'skeleton 1.5s ease-in-out infinite',
-        'fade-in':   'fadeIn 0.5s ease-out',
-        'slide-up':  'slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
-        'slide-down':'slideDown 0.3s ease-out',
-        'bounce-in': 'bounceIn 0.6s ease-out',
-        'pulse-soft':'pulseSoft 2s ease-in-out infinite',
-        'reveal':    'reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both',
-        'marquee':   'marquee 40s linear infinite',
+        'skeleton':   'skeleton 1.5s ease-in-out infinite',
+        'fade-in':    'fadeIn 0.5s ease-out',
+        'slide-up':   'slideUp 0.6s cubic-bezier(0.22, 1, 0.36, 1)',
+        'slide-down': 'slideDown 0.3s ease-out',
+        'bounce-in':  'bounceIn 0.6s ease-out',
+        'pulse-soft': 'pulseSoft 2s ease-in-out infinite',
+        'reveal':     'reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'marquee':    'marquee 40s linear infinite',
+        'page-turn':  'pageTurn 28s linear infinite',
+        'float-slow': 'floatSlow 6s ease-in-out infinite',
+        'shimmer':    'shimmer 2.4s linear infinite',
       },
       keyframes: {
         skeleton: {
@@ -135,10 +169,24 @@ module.exports = {
           '0%':   { transform: 'translateX(0)' },
           '100%': { transform: 'translateX(-50%)' },
         },
+        pageTurn: {
+          '0%':   { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        floatSlow: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%':      { transform: 'translateY(-6px)' },
+        },
+        shimmer: {
+          '0%':   { transform: 'translateX(-120%)' },
+          '100%': { transform: 'translateX(220%)' },
+        },
       },
       backgroundImage: {
-        'grain':    "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-        'radial-fade': 'radial-gradient(120% 80% at 50% 0%, rgba(47,101,64,0.12) 0%, rgba(47,101,64,0) 60%)',
+        'grain':       "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.32 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+        'radial-fade': 'radial-gradient(120% 80% at 50% 0%, rgba(53, 107, 54, 0.12) 0%, rgba(53, 107, 54, 0) 60%)',
+        'meadow':      'linear-gradient(135deg, #f6efdc 0%, #fbfaf5 45%, #e2ede0 100%)',
+        'cream-fade':  'linear-gradient(180deg, #faf7f0 0%, #f3eee2 100%)',
       },
     },
   },

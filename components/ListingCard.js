@@ -67,15 +67,16 @@ export default function ListingCard({
       className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 rounded-3xl"
     >
       <article className="relative overflow-hidden rounded-3xl bg-white border border-surface-200/70
-        transition-all duration-500 ease-out group-hover:border-surface-300 group-hover:shadow-lift">
-        {/* Image frame */}
-        <div className="relative aspect-[5/4] overflow-hidden bg-surface-100">
+        transition-all duration-500 ease-out group-hover:border-primary-300 group-hover:shadow-lift">
+        {/* Image frame — 4:3 keeps proportions stable across the rail and the
+            multi-column grid so phones don't render a different crop than desktops. */}
+        <div className="relative aspect-[4/3] overflow-hidden bg-surface-100">
           <Image
             src={thumbnail}
             alt={listing.title || 'Animal listing'}
             fill
-            className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.05]"
+            sizes="(max-width: 640px) 80vw, (max-width: 1024px) 45vw, 300px"
           />
 
           {/* Top gradient so badges stay legible on bright photos */}
@@ -194,7 +195,7 @@ export default function ListingCard({
 export function ListingCardSkeleton() {
   return (
     <div className="rounded-3xl overflow-hidden border border-surface-200/70 bg-white">
-      <div className="aspect-[5/4] skeleton rounded-none" />
+      <div className="aspect-[4/3] skeleton rounded-none" />
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="h-4 skeleton w-3/5" />

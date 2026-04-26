@@ -5,9 +5,10 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getCategoryEmoji, COMPANY_CONTACT } from '@/lib/helpers'
+import { COMPANY_CONTACT } from '@/lib/helpers'
 import SearchBar from '@/components/SearchBar'
 import ListingGrid from '@/components/ListingGrid'
+import BreedExplorer from '@/components/BreedExplorer'
 import toast from 'react-hot-toast'
 import {
   ShieldCheck, Truck, Users, UserPlus,
@@ -124,8 +125,10 @@ function HomePageContent() {
   return (
     <div className="min-h-screen">
       {/* ---------------- HERO ---------------- */}
-      <section className="relative overflow-hidden bg-primary-900">
-        {/* Background image with parallax-feel fade */}
+      <section className="relative overflow-hidden bg-primary-900
+        min-h-[640px] sm:min-h-[680px] lg:min-h-[720px] flex items-stretch">
+        {/* Background image with parallax-feel fade. object-position keeps the
+            animal centred on portrait phone screens where edges otherwise crop. */}
         <div className="absolute inset-0">
           {heroImages.map((src, i) => (
             <div
@@ -139,22 +142,22 @@ function HomePageContent() {
                 alt=""
                 fill
                 sizes="100vw"
-                quality={75}
+                quality={80}
                 priority={i === 0}
-                className="object-cover"
+                className="object-cover object-[center_30%] sm:object-center"
               />
             </div>
           ))}
           {/* Editorial dark overlays for white-text readability */}
           {/* 1. Strong left scrim where headline lives */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-900/85 via-primary-900/55 to-primary-900/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary-900/90 via-primary-900/60 to-primary-900/25" />
           {/* 2. Top-to-bottom vignette that anchors the navbar edge */}
-          <div className="absolute inset-0 bg-gradient-to-b from-primary-900/60 via-transparent to-primary-900/70" />
+          <div className="absolute inset-0 bg-gradient-to-b from-primary-900/65 via-transparent to-primary-900/75" />
           {/* 3. Fine grain */}
           <div className="absolute inset-0 bg-noise opacity-[0.22] mix-blend-overlay pointer-events-none" />
         </div>
 
-        <div className="relative page-section pt-28 sm:pt-32 lg:pt-40 pb-24 sm:pb-32 lg:pb-40">
+        <div className="relative page-section pt-28 sm:pt-32 lg:pt-40 pb-24 sm:pb-32 lg:pb-40 w-full">
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
               bg-white/10 backdrop-blur-xl border border-white/25 text-[11px] font-semibold
@@ -257,57 +260,49 @@ function HomePageContent() {
         </div>
       </section>
 
-      {/* ---------------- CATEGORIES ---------------- */}
+      {/* ---------------- CHOOSE A BREED ---------------- */}
       <section className="page-section pt-16 sm:pt-20 pb-4">
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
-            <div className="section-eyebrow">Categories</div>
-            <h2 className="section-heading">Browse by species</h2>
+            <div className="section-eyebrow">Find your match</div>
+            <h2 className="section-heading">
+              Choose a <span className="italic text-primary-700">breed</span>.
+            </h2>
+            <p className="mt-3 max-w-xl text-sm text-surface-600 leading-relaxed">
+              Pick a species, then jump straight to the breed you&apos;re looking for &mdash;
+              Murrah, Gir, Sahiwal, Boer, Jamunapari and more.
+            </p>
           </div>
           <Link href="/listings" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-primary-800 hover:text-primary-900">
-            See all <ChevronRight className="w-4 h-4" />
+            Browse all <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-          {loading
-            ? Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="h-28 w-32 skeleton rounded-2xl shrink-0" />
-              ))
-            : categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/listings?category=${cat.slug}`}
-                  className="group relative flex flex-col items-center justify-center gap-2 px-6 py-5
-                    bg-white border border-surface-200/70 rounded-2xl shadow-soft
-                    hover:border-primary-300 hover:shadow-lift hover:-translate-y-0.5
-                    min-w-[128px] shrink-0 transition-all duration-300"
-                >
-                  <span className="text-3xl transition-transform group-hover:scale-110">
-                    {getCategoryEmoji(cat.slug)}
-                  </span>
-                  <span className="text-[13px] font-semibold text-surface-ink">
-                    {cat.name}
-                  </span>
-                </Link>
-              ))}
-        </div>
+
+        <BreedExplorer categories={categories} loading={loading} />
       </section>
 
-      {/* ---------------- FEATURED LISTINGS ---------------- */}
-      <section className="page-section pt-16 sm:pt-20">
+      {/* ---------------- FEATURED LISTINGS (HORIZONTAL RAIL) ---------------- */}
+      <section className="page-section pt-16 sm:pt-20 relative">
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
             <div className="section-eyebrow">Fresh from the farm</div>
-            <h2 className="section-heading">Featured listings</h2>
+            <h2 className="section-heading">
+              Featured <span className="italic text-primary-700">listings</span>.
+            </h2>
+            <p className="mt-3 max-w-xl text-sm text-surface-600 leading-relaxed">
+              Scroll the rail &mdash; new animals come in daily from verified farmers across India.
+            </p>
           </div>
           <Link href="/listings" className="inline-flex items-center gap-1 text-sm font-semibold text-primary-800 hover:text-primary-900">
             See all <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
+
         <ListingGrid
+          variant="rail"
           listings={featuredListings}
           loading={loading}
-          skeletonCount={8}
+          skeletonCount={6}
           wishlistedIds={wishlistedIds}
           currentUserId={user?.id}
           emptyTitle="No listings yet"
