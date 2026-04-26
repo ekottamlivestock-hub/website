@@ -1,27 +1,37 @@
 import './globals.css'
-import { Inter, Fraunces } from 'next/font/google'
+import { Plus_Jakarta_Sans, Fraunces, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import Script from 'next/script'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import ErrorSuppressor from '@/components/ErrorSuppressor'
 
-// Body / UI sans — keep the full weight range for fine control.
-const inter = Inter({
+// Body / UI sans — Plus Jakarta Sans is geometric, friendly, and reads
+// great at small sizes. Modern dairy-brand vibe without being sterile.
+const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700', '800', '900'],
-  variable: '--font-inter',
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-jakarta',
   display: 'swap',
 })
 
 // Editorial serif for display headlines. Fraunces has tasteful
-// italic + variable weights that give headings a heritage feel
-// without looking dated.
+// italic + variable weights that give headings a heritage / heritage-
+// dairy feel without looking dated.
 const fraunces = Fraunces({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   style: ['normal', 'italic'],
   variable: '--font-fraunces',
+  display: 'swap',
+})
+
+// Mono for stats / prices — gives the "futuristic, data-driven" cue
+// the marketplace pages rely on.
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-jetbrains',
   display: 'swap',
 })
 
@@ -55,7 +65,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en-IN" className={`${inter.variable} ${fraunces.variable}`} suppressHydrationWarning>
+    <html lang="en-IN" className={`${jakarta.variable} ${fraunces.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
         <ErrorSuppressor />
         <Navbar />

@@ -10,12 +10,19 @@
 
   body {
     @apply bg-surface-50 text-surface-ink font-sans antialiased;
+    /* Subtle warm-paper background — never pure white. */
+    background-image:
+      radial-gradient(60% 40% at 0% 0%, rgba(70, 132, 69, 0.05) 0%, rgba(70, 132, 69, 0) 70%),
+      radial-gradient(50% 35% at 100% 0%, rgba(207, 167, 72, 0.06) 0%, rgba(207, 167, 72, 0) 75%);
+    background-attachment: fixed;
     font-feature-settings: 'ss01', 'cv11', 'cv02';
   }
 
-  /* Serif numerals in UI look great on prices/stats */
+  /* Mono numerals for prices, stats, counters. */
   .tabular {
     font-variant-numeric: tabular-nums;
+    font-family: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: -0.01em;
   }
 
   ::selection {
@@ -57,6 +64,11 @@
     @apply bg-white border border-surface-200/80 rounded-2xl shadow-soft;
   }
 
+  /* Cream "dairy" surface used for category chips and section bands. */
+  .surface-cream {
+    @apply bg-dairy-cream border border-dairy-oat/70 rounded-2xl;
+  }
+
   /* -------- Layout -------- */
   .page-container {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10;
@@ -68,6 +80,7 @@
 
   /* -------- Typography -------- */
   .font-display { font-family: var(--font-fraunces), Fraunces, Georgia, serif; }
+  .font-mono    { font-family: var(--font-jetbrains), 'JetBrains Mono', ui-monospace, monospace; }
 
   .eyebrow {
     @apply text-eyebrow font-semibold uppercase text-primary-700;
@@ -110,14 +123,14 @@
   }
 
   .btn-primary {
-    @apply btn-base bg-primary-700 text-white px-6 py-3
-      hover:bg-primary-800 active:bg-primary-900 shadow-lift
-      hover:shadow-float hover:-translate-y-0.5;
+    @apply btn-base bg-primary-600 text-white px-6 py-3
+      hover:bg-primary-700 active:bg-primary-800 shadow-lift
+      hover:shadow-glow hover:-translate-y-0.5;
   }
 
   .btn-secondary {
-    @apply btn-base bg-secondary-400 text-secondary-900 px-6 py-3
-      hover:bg-secondary-500 hover:text-white active:bg-secondary-600 shadow-soft;
+    @apply btn-base bg-secondary-300 text-secondary-900 px-6 py-3
+      hover:bg-secondary-400 hover:text-secondary-900 active:bg-secondary-500 shadow-soft;
   }
 
   .btn-outline {
@@ -178,6 +191,42 @@
     @apply absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full;
     animation: statusPulse 2s ease-in-out infinite;
   }
+
+  /* -------- Horizontal "page-turn" rail (for featured listings) -------- */
+  .h-rail {
+    @apply flex gap-5 overflow-x-auto scrollbar-hide snap-x snap-mandatory
+      pb-6 -mx-4 px-4 sm:mx-0 sm:px-0;
+    scroll-padding-left: 1rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  .h-rail > * {
+    @apply snap-start shrink-0;
+  }
+
+  /* Edge fade so the rail feels infinite, like a film strip / book edge. */
+  .h-rail-mask {
+    -webkit-mask-image: linear-gradient(90deg,
+      transparent 0,
+      #000 28px,
+      #000 calc(100% - 60px),
+      transparent 100%);
+            mask-image: linear-gradient(90deg,
+      transparent 0,
+      #000 28px,
+      #000 calc(100% - 60px),
+      transparent 100%);
+  }
+
+  /* Round nav buttons that flank the rail */
+  .rail-nav {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-full
+      bg-white border border-surface-200/80 text-surface-ink shadow-soft
+      hover:bg-primary-600 hover:text-white hover:border-primary-600
+      hover:shadow-glow transition-all duration-200
+      disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-surface-ink
+      disabled:hover:border-surface-200/80 disabled:cursor-not-allowed;
+  }
 }
 
 @layer utilities {
@@ -192,11 +241,31 @@
 
   /* Wider letter spacing for eyebrow labels */
   .tracking-widest-plus { letter-spacing: 0.24em; }
+
+  /* Shimmer highlight strip (used on hero CTAs / breed chips) */
+  .shimmer-strip {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-strip::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 70%
+    );
+    transform: translateX(-120%);
+    animation: shimmer 2.4s linear infinite;
+    pointer-events: none;
+  }
 }
 
 /* Toast overrides */
 .toast-custom {
-  font-family: var(--font-inter), Inter, system-ui, sans-serif !important;
+  font-family: var(--font-jakarta), 'Plus Jakarta Sans', system-ui, sans-serif !important;
   font-size: 0.875rem !important;
   border-radius: 1rem !important;
   padding: 0.75rem 1rem !important;

@@ -3,7 +3,22 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { getCategoryEmoji } from '@/lib/helpers'
+import {
+  Beef, Bird, Egg, Fish, Rabbit, PawPrint, Wheat, Milk, LayoutGrid,
+} from 'lucide-react'
+
+// Tiny lucide icon for a category — replaces the emoji cartoon set.
+function getCategoryIcon(slug = '') {
+  const s = slug.toLowerCase()
+  if (s.includes('cow') || s.includes('cattle') || s.includes('bovine')) return Beef
+  if (s.includes('buffalo'))                                              return Milk
+  if (s.includes('hen') || s.includes('chick') || s.includes('poultry'))  return Egg
+  if (s.includes('duck'))                                                  return Bird
+  if (s.includes('fish'))                                                  return Fish
+  if (s.includes('rabbit'))                                                return Rabbit
+  if (s.includes('goat') || s.includes('sheep') || s.includes('lamb'))    return Wheat
+  return PawPrint
+}
 
 export default function CategoryBar() {
   const [categories, setCategories] = useState([])
@@ -60,30 +75,36 @@ export default function CategoryBar() {
           params.delete('breed')
           router.push(`/listings?${params.toString()}`)
         }}
-        className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium 
+        className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold
           whitespace-nowrap shrink-0 transition-all duration-200 border ${
           !activeCategory
-            ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-600/20'
-            : 'bg-white text-stone-600 border-stone-200 hover:border-primary-300 hover:text-primary-600'
+            ? 'bg-primary-700 text-white border-primary-700 shadow-glow'
+            : 'bg-white text-surface-ink border-surface-200/80 hover:border-primary-400 hover:text-primary-700'
         }`}
       >
-        🐾 All
+        <LayoutGrid className="w-4 h-4" strokeWidth={1.75} />
+        All
       </button>
 
-      {categories.map((cat) => (
-        <button
-          key={cat.id}
-          onClick={() => handleClick(cat.slug)}
-          className={`flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium 
-            whitespace-nowrap shrink-0 transition-all duration-200 border ${
-            activeCategory === cat.slug
-              ? 'bg-primary-600 text-white border-primary-600 shadow-md shadow-primary-600/20'
-              : 'bg-white text-stone-600 border-stone-200 hover:border-primary-300 hover:text-primary-600'
-          }`}
-        >
-          {getCategoryEmoji(cat.slug)} {cat.name}
-        </button>
-      ))}
+      {categories.map((cat) => {
+        const Icon = getCategoryIcon(cat.slug)
+        const isActive = activeCategory === cat.slug
+        return (
+          <button
+            key={cat.id}
+            onClick={() => handleClick(cat.slug)}
+            className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-semibold
+              whitespace-nowrap shrink-0 transition-all duration-200 border ${
+              isActive
+                ? 'bg-primary-700 text-white border-primary-700 shadow-glow'
+                : 'bg-white text-surface-ink border-surface-200/80 hover:border-primary-400 hover:text-primary-700'
+            }`}
+          >
+            <Icon className="w-4 h-4" strokeWidth={1.75} />
+            {cat.name}
+          </button>
+        )
+      })}
     </div>
   )
 }
