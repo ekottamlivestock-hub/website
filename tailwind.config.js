@@ -134,6 +134,10 @@ module.exports = {
         'page-turn':  'pageTurn 28s linear infinite',
         'float-slow': 'floatSlow 6s ease-in-out infinite',
         'shimmer':    'shimmer 2.4s linear infinite',
+        // Slow Ken Burns zoom + drift used on the active hero slide.
+        'ken-burns':  'kenBurns 12s ease-out forwards',
+        // Breathing emerald ring used on the primary "Become a seller" CTA.
+        'pulse-glow': 'pulseGlow 2.6s ease-in-out infinite',
       },
       keyframes: {
         skeleton: {
@@ -180,6 +184,14 @@ module.exports = {
         shimmer: {
           '0%':   { transform: 'translateX(-120%)' },
           '100%': { transform: 'translateX(220%)' },
+        },
+        kenBurns: {
+          '0%':   { transform: 'scale(1) translate(0, 0)' },
+          '100%': { transform: 'scale(1.08) translate(-1.5%, -1%)' },
+        },
+        pulseGlow: {
+          '0%, 100%': { boxShadow: '0 0 0 0 rgba(70, 132, 69, 0.55), 0 18px 40px -16px rgba(70, 132, 69, 0.45)' },
+          '50%':      { boxShadow: '0 0 0 14px rgba(70, 132, 69, 0), 0 22px 50px -16px rgba(70, 132, 69, 0.65)' },
         },
       },
       backgroundImage: {
