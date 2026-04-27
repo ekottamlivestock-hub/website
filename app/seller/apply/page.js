@@ -19,6 +19,7 @@ export default function SellerApplyPage() {
 
 function ApplyContent() {
   const [profile, setProfile] = useState(null)
+  const [userId, setUserId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({
@@ -33,6 +34,7 @@ function ApplyContent() {
     const fetchData = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
+      setUserId(session.user.id)
 
       const { data: prof, error: profErr } = await supabase
         .from('profiles')
@@ -146,7 +148,8 @@ function ApplyContent() {
           <p className="text-stone-500 mt-4 mb-6">You can reapply with updated information below.</p>
         </div>
         <ApplicationForm form={form} setForm={setForm} idProofUrl={idProofUrl} setIdProofUrl={setIdProofUrl}
-          farmPhotoUrl={farmPhotoUrl} setFarmPhotoUrl={setFarmPhotoUrl} onSubmit={handleSubmit} submitting={submitting} />
+          farmPhotoUrl={farmPhotoUrl} setFarmPhotoUrl={setFarmPhotoUrl} onSubmit={handleSubmit} submitting={submitting}
+          userId={userId} />
       </div>
     )
   }
@@ -161,12 +164,13 @@ function ApplyContent() {
         <p className="text-stone-500">Fill in your details to start selling on ekottam. Applications are reviewed within 24 hours.</p>
       </div>
       <ApplicationForm form={form} setForm={setForm} idProofUrl={idProofUrl} setIdProofUrl={setIdProofUrl}
-        farmPhotoUrl={farmPhotoUrl} setFarmPhotoUrl={setFarmPhotoUrl} onSubmit={handleSubmit} submitting={submitting} />
+        farmPhotoUrl={farmPhotoUrl} setFarmPhotoUrl={setFarmPhotoUrl} onSubmit={handleSubmit} submitting={submitting}
+        userId={userId} />
     </div>
   )
 }
 
-function ApplicationForm({ form, setForm, idProofUrl, setIdProofUrl, farmPhotoUrl, setFarmPhotoUrl, onSubmit, submitting }) {
+function ApplicationForm({ form, setForm, idProofUrl, setIdProofUrl, farmPhotoUrl, setFarmPhotoUrl, onSubmit, submitting, userId }) {
   return (
     <form onSubmit={onSubmit} className="bg-white rounded-2xl border border-stone-100 p-6 shadow-sm space-y-5">
       <div>
@@ -208,11 +212,11 @@ function ApplicationForm({ form, setForm, idProofUrl, setIdProofUrl, farmPhotoUr
       </div>
       <div>
         <label className="input-label">ID Proof (Upload)</label>
-        <ImageUploader bucket="seller-docs" maxFiles={1} images={idProofUrl} onImagesChange={setIdProofUrl} />
+        <ImageUploader bucket="seller-docs" folder={userId} maxFiles={1} images={idProofUrl} onImagesChange={setIdProofUrl} />
       </div>
       <div>
         <label className="input-label">Farm Photo (Optional)</label>
-        <ImageUploader bucket="seller-docs" maxFiles={1} images={farmPhotoUrl} onImagesChange={setFarmPhotoUrl} />
+        <ImageUploader bucket="seller-docs" folder={userId} maxFiles={1} images={farmPhotoUrl} onImagesChange={setFarmPhotoUrl} />
       </div>
       <button type="submit" disabled={submitting} className="w-full btn-primary flex items-center justify-center gap-2">
         {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Store className="w-4 h-4" />}

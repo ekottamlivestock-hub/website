@@ -59,20 +59,45 @@ function SellersContent() {
     return session
   }
 
+  // Updates a row and verifies a row was actually changed. Supabase silently
+  // returns 0 rows when RLS blocks an UPDATE — without this check, a missing
+  // policy would look like a success.
+  const updateOrThrow = async (table, patch, match, label) => {
+    const { data, error } = await supabase
+      .from(table)
+      .update(patch)
+      .match(match)
+      .select()
+    if (error) throw error
+    if (!data || data.length === 0) {
+      throw new Error(
+        `${label} update affected 0 rows — likely an RLS policy is blocking it. Run the latest migration.`
+      )
+    }
+    return data
+  }
+
   const handleApprove = async (app) => {
     setProcessing(true)
     try {
       const session = await getAdminSession()
-      await supabase.from('seller_applications').update({
-        status: 'approved',
-        reviewed_by: session.user.id,
-        reviewed_at: new Date().toISOString(),
-      }).eq('id', app.id)
+      await updateOrThrow(
+        'seller_applications',
+        {
+          status: 'approved',
+          reviewed_by: session.user.id,
+          reviewed_at: new Date().toISOString(),
+        },
+        { id: app.id },
+        'Application'
+      )
 
-      await supabase.from('profiles').update({
-        role: 'seller',
-        seller_status: 'approved',
-      }).eq('id', app.user_id)
+      await updateOrThrow(
+        'profiles',
+        { role: 'seller', seller_status: 'approved' },
+        { id: app.user_id },
+        'Profile'
+      )
 
       await sendNotification(
         app.user_id,
@@ -94,16 +119,24 @@ function SellersContent() {
     setProcessing(true)
     try {
       const session = await getAdminSession()
-      await supabase.from('seller_applications').update({
-        status: 'rejected',
-        admin_note: rejectNote,
-        reviewed_by: session.user.id,
-        reviewed_at: new Date().toISOString(),
-      }).eq('id', rejectModal.id)
+      await updateOrThrow(
+        'seller_applications',
+        {
+          status: 'rejected',
+          admin_note: rejectNote,
+          reviewed_by: session.user.id,
+          reviewed_at: new Date().toISOString(),
+        },
+        { id: rejectModal.id },
+        'Application'
+      )
 
-      await supabase.from('profiles').update({
-        seller_status: 'rejected',
-      }).eq('id', rejectModal.user_id)
+      await updateOrThrow(
+        'profiles',
+        { seller_status: 'rejected' },
+        { id: rejectModal.user_id },
+        'Profile'
+      )
 
       await sendNotification(
         rejectModal.user_id,
@@ -126,10 +159,12 @@ function SellersContent() {
     setProcessing(true)
     try {
       await getAdminSession()
-      await supabase.from('profiles').update({
-        role: 'buyer',
-        seller_status: 'suspended',
-      }).eq('id', app.user_id)
+      await updateOrThrow(
+        'profiles',
+        { role: 'buyer', seller_status: 'suspended' },
+        { id: app.user_id },
+        'Profile'
+      )
 
       await sendNotification(
         app.user_id,
@@ -151,10 +186,12 @@ function SellersContent() {
     setProcessing(true)
     try {
       await getAdminSession()
-      await supabase.from('profiles').update({
-        role: 'seller',
-        seller_status: 'approved',
-      }).eq('id', app.user_id)
+      await updateOrThrow(
+        'profiles',
+        { role: 'seller', seller_status: 'approved' },
+        { id: app.user_id },
+        'Profile'
+      )
 
       await sendNotification(
         app.user_id,
@@ -176,17 +213,21 @@ function SellersContent() {
     setProcessing(true)
     try {
       await getAdminSession()
-      // Revoke seller role and clear seller status
-      await supabase.from('profiles').update({
-        role: 'buyer',
-        seller_status: null,
-      }).eq('id', app.user_id)
+      // Revoke seller role and reset to not_applied (NOT NULL column).
+      await updateOrThrow(
+        'profiles',
+        { role: 'buyer', seller_status: 'not_applied' },
+        { id: app.user_id },
+        'Profile'
+      )
 
       // Mark the application as rejected/removed
-      await supabase.from('seller_applications').update({
-        status: 'rejected',
-        admin_note: 'Seller removed by admin.',
-      }).eq('id', app.id)
+      await updateOrThrow(
+        'seller_applications',
+        { status: 'rejected', admin_note: 'Seller removed by admin.' },
+        { id: app.id },
+        'Application'
+      )
 
       await sendNotification(
         app.user_id,
