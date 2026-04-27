@@ -7,7 +7,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
   Menu, X, Search, Heart, Plus, ShieldCheck,
-  User, LogOut, Package, LayoutDashboard, ChevronDown, Store,
+  User, LogOut, Package, LayoutDashboard, ChevronDown, Store, Clock,
 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import LanguageSwitcher from './LanguageSwitcher'
@@ -27,30 +27,78 @@ export default function Navbar() {
   const router = useRouter()
   const pathname = usePathname()
   const dropdownRef = useRef(null)
+  const realtimeChannelRef = useRef(null)
+
+  // Fetch profile for a given user id
+  const fetchProfile = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      setProfile(data || null)
+      return data
+    } catch (err) {
+      console.error('Failed to fetch profile:', err)
+      return null
+    }
+  }
+
+  // Subscribe to realtime profile changes so role updates (e.g. admin approves seller)
+  // are reflected immediately without the user having to log out and back in.
+  const subscribeToProfile = (userId) => {
+    // Clean up any existing subscription first
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current)
+      realtimeChannelRef.current = null
+    }
+
+    const channel = supabase
+      .channel(`profile-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${userId}`,
+        },
+        (payload) => {
+          // Profile was updated (e.g. admin approved seller) — refresh locally
+          setProfile(payload.new)
+        }
+      )
+      .subscribe()
+
+    realtimeChannelRef.current = channel
+  }
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
           setUser(session.user)
-          try {
-            const { data } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .maybeSingle()
-            setProfile(data || null)
-          } catch (err) {
-            console.error('Failed to fetch profile:', err)
-          }
+          await fetchProfile(session.user.id)
+          subscribeToProfile(session.user.id)
         } else {
           setUser(null)
           setProfile(null)
+          // Unsubscribe when logged out
+          if (realtimeChannelRef.current) {
+            supabase.removeChannel(realtimeChannelRef.current)
+            realtimeChannelRef.current = null
+          }
         }
       }
     )
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      subscription.unsubscribe()
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10)
@@ -101,6 +149,8 @@ export default function Navbar() {
 
   const isAdmin = profile?.role === 'admin'
   const isSeller = profile?.role === 'seller' || isAdmin
+  const isPendingSeller = !isSeller && profile?.seller_status === 'pending'
+  const canBecomeSeller = user && !isSeller && !isPendingSeller
   const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url
 
   return (
@@ -151,36 +201,53 @@ export default function Navbar() {
             <LanguageSwitcher />
 
             {!user ? (
-              <>
-                <Link
-                  href="/seller/apply"
-                  className="btn-primary px-5 py-2.5 text-sm animate-pulse-glow"
-                >
-                  <Store className="w-4 h-4" strokeWidth={2} />
-                  Become a seller
-                </Link>
-                <button
-                  onClick={handleSignIn}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold
-                    rounded-full text-surface-ink border border-surface-200/80 bg-white/80
-                    hover:bg-white hover:border-primary-300 hover:text-primary-800 transition-all"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Sign in
-                </button>
-              </>
+              // NOT LOGGED IN — show only Sign In, never "Become a Seller"
+              <button
+                onClick={handleSignIn}
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold
+                  rounded-full text-surface-ink border border-surface-200/80 bg-white/80
+                  hover:bg-white hover:border-primary-300 hover:text-primary-800 transition-all"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in
+              </button>
             ) : (
               <>
+                {/* LOGGED IN + IS SELLER → show Sell button */}
                 {isSeller && (
                   <Link href="/sell" className="btn-primary px-4 py-2.5 text-sm">
                     <Plus className="w-4 h-4" />
                     Sell
                   </Link>
+                )}
+
+                {/* LOGGED IN + NOT SELLER + NOT PENDING → show Become a Seller */}
+                {canBecomeSeller && (
+                  <Link
+                    href="/seller/apply"
+                    className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold
+                      bg-secondary-50 text-secondary-800 border border-secondary-200
+                      hover:bg-secondary-100 rounded-full transition-all"
+                  >
+                    <Store className="w-4 h-4" />
+                    Become a Seller
+                  </Link>
+                )}
+
+                {/* LOGGED IN + PENDING → show status pill */}
+                {isPendingSeller && (
+                  <span className="flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium
+                    bg-amber-50 text-amber-700 border border-amber-200 rounded-full cursor-default"
+                    title="Your seller application is under review"
+                  >
+                    <Clock className="w-4 h-4" />
+                    Application Pending
+                  </span>
                 )}
 
                 {isAdmin && (
@@ -252,10 +319,24 @@ export default function Navbar() {
                           </Link>
                         )}
 
-                        {!isSeller && profile?.seller_status !== 'approved' && (
+                        {isSeller && (
+                          <Link href="/seller/listings" className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-600 hover:bg-surface-50 transition-colors">
+                            <Package className="w-4 h-4 text-surface-400" /> My Listings
+                          </Link>
+                        )}
+
+                        {/* Only show "Become a Seller" if logged in, not a seller, and not pending */}
+                        {canBecomeSeller && (
                           <Link href="/seller/apply" className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-600 hover:bg-surface-50 transition-colors">
                             <Store className="w-4 h-4 text-surface-400" /> Become a Seller
                           </Link>
+                        )}
+
+                        {/* Show pending state in dropdown too */}
+                        {isPendingSeller && (
+                          <div className="flex items-center gap-3 px-4 py-2.5 text-sm text-amber-600">
+                            <Clock className="w-4 h-4 text-amber-400" /> Application Under Review
+                          </div>
                         )}
 
                         <Link href="/buyer/orders" className="flex items-center gap-3 px-4 py-2.5 text-sm text-surface-600 hover:bg-surface-50 transition-colors">
@@ -279,7 +360,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile */}
+          {/* Mobile toggle */}
           <div className="md:hidden flex items-center gap-1">
             <LanguageSwitcher />
             <button
@@ -314,42 +395,55 @@ export default function Navbar() {
 
           <div className="px-4 pb-6 space-y-2">
             {!user ? (
-              <>
-                <Link
-                  href="/seller/apply"
-                  className="w-full btn-primary animate-pulse-glow justify-center"
-                >
-                  <Store className="w-4 h-4" strokeWidth={2} />
-                  Become a seller
-                </Link>
-                <button
-                  onClick={handleSignIn}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3
-                    text-sm font-semibold rounded-full text-surface-ink border border-surface-200/80
-                    bg-white hover:bg-surface-100 transition-colors"
-                >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
-                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Sign in with Google
-                </button>
-              </>
+              // NOT LOGGED IN — only Sign In
+              <button
+                onClick={handleSignIn}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3
+                  text-sm font-semibold rounded-full text-surface-ink border border-surface-200/80
+                  bg-white hover:bg-surface-100 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
+                  <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                  <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Sign in with Google
+              </button>
             ) : (
               <>
+                {/* IS SELLER → show Create Listing */}
                 {isSeller && (
                   <Link href="/sell" className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-primary-700 bg-primary-50 rounded-xl">
                     <Plus className="w-4 h-4" /> Create Listing
                   </Link>
                 )}
+
+                {/* NOT SELLER + NOT PENDING → show Become a Seller */}
+                {canBecomeSeller && (
+                  <Link href="/seller/apply" className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-secondary-800 bg-secondary-50 rounded-xl">
+                    <Store className="w-4 h-4" /> Become a Seller
+                  </Link>
+                )}
+
+                {/* PENDING → show status */}
+                {isPendingSeller && (
+                  <div className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-amber-700 bg-amber-50 rounded-xl">
+                    <Clock className="w-4 h-4" /> Application Under Review
+                  </div>
+                )}
+
                 <Link href="/profile" className="block px-4 py-3 text-sm font-medium text-surface-ink hover:bg-white rounded-xl">
                   My Profile
                 </Link>
                 {isSeller && (
                   <Link href="/seller/dashboard" className="block px-4 py-3 text-sm font-medium text-surface-ink hover:bg-white rounded-xl">
                     Seller Dashboard
+                  </Link>
+                )}
+                {isSeller && (
+                  <Link href="/seller/listings" className="block px-4 py-3 text-sm font-medium text-surface-ink hover:bg-white rounded-xl">
+                    My Listings
                   </Link>
                 )}
                 <Link href="/buyer/orders" className="block px-4 py-3 text-sm font-medium text-surface-ink hover:bg-white rounded-xl">

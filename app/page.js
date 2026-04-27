@@ -440,16 +440,36 @@ function HomePageContent() {
               </h2>
             </div>
             <div className="flex flex-col gap-3 lg:items-end">
-              <Link
-                href="/seller/apply"
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white
-                  text-surface-ink rounded-full font-semibold transition-all shadow-lift
-                  hover:bg-secondary-100 hover:-translate-y-0.5 animate-pulse-glow"
-              >
-                <Store className="w-4 h-4" strokeWidth={2} />
-                Become a seller
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              {/* If logged in go to /sell; if not, prompt Google sign-in first */}
+              {user ? (
+                <Link
+                  href="/sell"
+                  className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white
+                    text-surface-ink rounded-full font-semibold transition-all shadow-lift
+                    hover:bg-secondary-100 hover:-translate-y-0.5"
+                >
+                  Post ad for free
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              ) : (
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signInWithOAuth({
+                      provider: 'google',
+                      options: {
+                        redirectTo: `${window.location.origin}/auth/callback?next=/sell`,
+                        queryParams: { prompt: 'select_account' },
+                      },
+                    })
+                  }}
+                  className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white
+                    text-surface-ink rounded-full font-semibold transition-all shadow-lift
+                    hover:bg-secondary-100 hover:-translate-y-0.5"
+                >
+                  Post ad for free
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </button>
+              )}
               <a
                 href={COMPANY_CONTACT.whatsappUrl}
                 target="_blank"
