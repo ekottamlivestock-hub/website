@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import { pathFromPublicUrl } from '@/lib/storage-cleanup'
 import { X, ImagePlus, Loader2, FileCheck2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -24,6 +25,11 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState({})
   const inputRef = useRef(null)
+  // Track entries uploaded during this component's lifetime. If the user
+  // removes one before the parent saves the form, we delete the storage
+  // file too — otherwise it would orphan because the new file never
+  // reached the DB to be picked up by listing-edit's diff cleanup.
+  const sessionUploadsRef = useRef(new Set())
 
   // For private buckets `bucket` allows pdf — accept image + pdf there.
   const acceptTypes = isPrivate
@@ -78,19 +84,22 @@ export default function ImageUploader({
           if (result.error) throw result.error
           const data = result.data
 
+          let entry
           if (isPrivate) {
             // Store the path. We don't generate a signed URL here because
             // the private-bucket render path shows a "uploaded ✓" pill,
             // not an <Image>. Admin views generate a fresh signed URL on
             // click.
-            newEntries.push(data.path)
+            entry = data.path
           } else {
             // Public bucket — public URL is fine to render directly.
             const { data: { publicUrl } } = supabase.storage
               .from(bucket)
               .getPublicUrl(data.path)
-            newEntries.push(publicUrl)
+            entry = publicUrl
           }
+          newEntries.push(entry)
+          sessionUploadsRef.current.add(entry)
 
           setProgress(prev => ({ ...prev, [file.name]: 100 }))
         } catch (err) {
@@ -109,10 +118,25 @@ export default function ImageUploader({
     }
   }, [images, maxFiles, maxSizeMB, bucket, folder, onImagesChange, isPrivate])
 
-  const removeImage = (index) => {
+  const removeImage = async (index) => {
+    const removed = images[index]
     const newImages = [...images]
     newImages.splice(index, 1)
     onImagesChange(newImages)
+
+    // If this entry was uploaded during the current session, the parent
+    // hasn't saved it to the DB yet — diff-based cleanup at save time
+    // can't see it, so we have to delete the storage file ourselves.
+    // Pre-existing entries (loaded by parent) are left alone here; the
+    // parent's save flow handles their cleanup once committed.
+    if (removed && sessionUploadsRef.current.has(removed)) {
+      sessionUploadsRef.current.delete(removed)
+      const path = isPrivate ? removed : pathFromPublicUrl(removed, bucket)
+      if (path) {
+        const { error } = await supabase.storage.from(bucket).remove([path])
+        if (error) console.warn('Failed to clean session-upload storage:', error)
+      }
+    }
   }
 
   const handleDrop = (e) => {

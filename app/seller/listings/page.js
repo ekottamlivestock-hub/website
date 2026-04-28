@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { formatPrice, formatDate } from '@/lib/helpers'
+import { deleteListingStorage } from '@/lib/storage-cleanup'
 import StatusBadge from '@/components/StatusBadge'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import toast from 'react-hot-toast'
@@ -47,16 +48,11 @@ function ListingsContent() {
   const deleteListing = async (id) => {
     if (!confirm('Delete this draft?')) return
 
-    // 1. Fetch media URLs to prevent storage leakage
-    const { data: media } = await supabase.from('listing_media').select('url').eq('listing_id', id)
-    if (media && media.length > 0) {
-      const paths = media.map(m => m.url.split('/public/listing-media/')[1]).filter(Boolean)
-      if (paths.length > 0) {
-        await supabase.storage.from('listing-media').remove(paths)
-      }
-    }
+    // 1. Remove storage files first so we don't leak orphans if the row
+    //    delete succeeds but cascade gets ahead of us.
+    await deleteListingStorage(id)
 
-    // 2. Delete the listing row
+    // 2. Delete the listing row (listing_media rows cascade).
     const { error } = await supabase.from('listings').delete().eq('id', id)
     if (error) { toast.error('Failed to delete'); return }
     toast.success('Draft deleted')

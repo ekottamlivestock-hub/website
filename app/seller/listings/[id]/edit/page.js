@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { INDIAN_STATES, VACCINATION_TAGS, sendNotification } from '@/lib/helpers'
+import { cleanupRemovedListingMedia } from '@/lib/storage-cleanup'
 import ImageUploader from '@/components/ImageUploader'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import toast from 'react-hot-toast'
@@ -143,7 +144,13 @@ function EditListingContent() {
 
       if (error) throw error
 
-      // Update media (delete existing and insert new order)
+      // Update media. The naive approach (delete all rows, re-insert)
+      // would orphan storage files for any image the seller removed —
+      // those files would stay in the bucket forever. So before the
+      // wipe-and-replace, diff the current `images` (URLs the seller is
+      // keeping) against what's already in the DB and delete the dropped
+      // files from storage.
+      await cleanupRemovedListingMedia(id, images)
       await supabase.from('listing_media').delete().eq('listing_id', id)
       if (images.length > 0) {
         const mediaRows = images.map((url, i) => ({
