@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { formatPrice, formatDate } from '@/lib/helpers'
+import { formatPrice, formatDate, sendNotification } from '@/lib/helpers'
 import StatusBadge from '@/components/StatusBadge'
 import StarRating from '@/components/StarRating'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import toast from 'react-hot-toast'
-import { Loader2, X, MessageSquare } from 'lucide-react'
+import { Loader2, X, MessageSquare, XCircle } from 'lucide-react'
 
 export default function BuyerOrdersPage() {
   return (
@@ -22,6 +22,7 @@ function OrdersContent() {
   const [loading, setLoading] = useState(true)
   const [reviewModal, setReviewModal] = useState(null)
   const [reviewForm, setReviewForm] = useState({ rating: 5, comment: '' })
+  const [cancelOrder, setCancelOrder] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
   const fetchOrders = async () => {
@@ -50,6 +51,40 @@ function OrdersContent() {
   }
 
   useEffect(() => { fetchOrders() }, [])
+
+  const confirmCancel = async () => {
+    if (!cancelOrder) return
+    setSubmitting(true)
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' })
+        .eq('id', cancelOrder.id)
+        .eq('status', 'pending') // safety: only cancel if still pending
+        .select()
+      if (error) throw error
+      if (!data || data.length === 0) {
+        throw new Error('This order can no longer be cancelled.')
+      }
+      // Notify the seller. The DB trigger has already restored inventory.
+      const sellerId = cancelOrder.listings?.seller_id
+      if (sellerId) {
+        await sendNotification(
+          sellerId,
+          'order_cancelled',
+          `An order for "${cancelOrder.listings?.title || 'your listing'}" was cancelled by the buyer.`,
+          { order_id: cancelOrder.id }
+        )
+      }
+      toast.success('Order cancelled')
+      setCancelOrder(null)
+      fetchOrders()
+    } catch (err) {
+      toast.error(err.message || 'Failed to cancel order')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const submitReview = async () => {
     if (!reviewForm.rating) { toast.error('Please select a rating'); return }
@@ -120,16 +155,47 @@ function OrdersContent() {
                   </div>
                 )}
 
-                {/* Review Button */}
-                {o.status === 'delivered' && !hasReview && (
-                  <button onClick={() => setReviewModal(o)}
-                    className="btn-outline text-xs px-4 py-2 flex items-center gap-1">
-                    <MessageSquare className="w-3 h-3" /> Leave Review
-                  </button>
-                )}
+                <div className="flex gap-2 flex-wrap">
+                  {/* Cancel — only available while pending */}
+                  {o.status === 'pending' && (
+                    <button onClick={() => setCancelOrder(o)}
+                      className="btn-outline text-xs px-4 py-2 flex items-center gap-1 border-red-200 text-red-600 hover:bg-red-50">
+                      <XCircle className="w-3 h-3" /> Cancel Order
+                    </button>
+                  )}
+
+                  {/* Review Button */}
+                  {o.status === 'delivered' && !hasReview && (
+                    <button onClick={() => setReviewModal(o)}
+                      className="btn-outline text-xs px-4 py-2 flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3" /> Leave Review
+                    </button>
+                  )}
+                </div>
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Cancel Confirm Modal */}
+      {cancelOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => !submitting && setCancelOrder(null)} />
+          <div className="relative bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-stone-800 mb-2">Cancel this order?</h3>
+            <p className="text-sm text-stone-500 mb-6">
+              <span className="font-semibold text-stone-700">{cancelOrder.listings?.title}</span> — once cancelled, the
+              seller will be notified and the item will be returned to inventory. This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setCancelOrder(null)} disabled={submitting}
+                className="flex-1 btn-ghost border border-stone-200">Keep Order</button>
+              <button onClick={confirmCancel} disabled={submitting} className="flex-1 btn-danger">
+                {submitting ? 'Cancelling…' : 'Cancel Order'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

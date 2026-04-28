@@ -1,41 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
-const PROFILE_COOKIE = 'ek_profile'
-const PROFILE_TTL_SECONDS = 10 * 60 // 10 min
-
-function readProfileCookie(request) {
-  const raw = request.cookies.get(PROFILE_COOKIE)?.value
-  if (!raw) return null
-  try {
-    const parsed = JSON.parse(decodeURIComponent(raw))
-    if (!parsed?.uid || !parsed?.exp) return null
-    if (Date.now() / 1000 > parsed.exp) return null
-    return parsed
-  } catch {
-    return null
-  }
-}
-
-function writeProfileCookie(response, uid, role, sellerStatus) {
-  const payload = {
-    uid,
-    role: role || 'buyer',
-    seller_status: sellerStatus || null,
-    exp: Math.floor(Date.now() / 1000) + PROFILE_TTL_SECONDS,
-  }
-  response.cookies.set(PROFILE_COOKIE, encodeURIComponent(JSON.stringify(payload)), {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
-    maxAge: PROFILE_TTL_SECONDS,
-  })
-}
-
-function clearProfileCookie(response) {
-  response.cookies.set(PROFILE_COOKIE, '', { path: '/', maxAge: 0 })
-}
+// Profile is fetched fresh on every protected-route request. We previously
+// cached role/seller_status in an `ek_profile` cookie for 10 minutes, but
+// that meant a newly-approved seller stayed blocked at the middleware layer
+// for up to 10 minutes after the admin clicked Approve. The DB query is a
+// single-row primary-key lookup — the latency hit is negligible compared
+// to the broken UX of stale role checks.
 
 export async function middleware(request) {
   const pathname = request.nextUrl.pathname
@@ -98,33 +69,23 @@ export async function middleware(request) {
       const redirectUrl = new URL('/', request.url)
       redirectUrl.searchParams.set('error', 'unauthorized')
       redirectUrl.searchParams.set('message', 'Please sign in to continue')
-      const redirect = NextResponse.redirect(redirectUrl)
-      clearProfileCookie(redirect)
-      return redirect
+      return NextResponse.redirect(redirectUrl)
     }
 
-    // Try profile cookie first — avoids DB hit on every protected-route request
-    let profile = readProfileCookie(request)
-    if (!profile || profile.uid !== user.id) {
-      const { data: dbProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, seller_status')
-        .eq('id', user.id)
-        .maybeSingle()
+    // Always fetch the live profile — no cookie cache. A primary-key lookup
+    // on a single row is cheap, and the alternative (cached role) breaks the
+    // moment an admin approves / suspends / removes a seller.
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, seller_status')
+      .eq('id', user.id)
+      .maybeSingle()
 
-      if (profileError || !dbProfile) {
-        const redirectUrl = new URL('/', request.url)
-        redirectUrl.searchParams.set('error', 'unauthorized')
-        redirectUrl.searchParams.set('message', 'Profile not found')
-        return NextResponse.redirect(redirectUrl)
-      }
-
-      profile = {
-        uid: user.id,
-        role: dbProfile.role,
-        seller_status: dbProfile.seller_status,
-      }
-      writeProfileCookie(supabaseResponse, user.id, dbProfile.role, dbProfile.seller_status)
+    if (profileError || !profile) {
+      const redirectUrl = new URL('/', request.url)
+      redirectUrl.searchParams.set('error', 'unauthorized')
+      redirectUrl.searchParams.set('message', 'Profile not found')
+      return NextResponse.redirect(redirectUrl)
     }
 
     if (pathname.startsWith('/admin') && profile.role !== 'admin') {

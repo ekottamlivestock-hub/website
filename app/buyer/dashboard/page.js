@@ -33,8 +33,14 @@ function DashboardContent() {
       ])
 
       const orders = ordersRes.data || []
-      const spent = orders.reduce((sum, o) => sum + (o.total_price || 0), 0)
-      setStats({ orders: orders.length, wishlist: wishlistRes.count || 0, spent })
+      // "Total Spent" = money actually committed: confirmed/shipped/delivered.
+      // Exclude pending (not yet accepted) and cancelled (refunded / never paid).
+      const FULFILLED = new Set(['confirmed', 'shipped', 'delivered'])
+      const spent = orders
+        .filter(o => FULFILLED.has(o.status))
+        .reduce((sum, o) => sum + (o.total_price || 0), 0)
+      const activeOrders = orders.filter(o => o.status !== 'cancelled').length
+      setStats({ orders: activeOrders, wishlist: wishlistRes.count || 0, spent })
       setRecentOrders(orders.slice(0, 5))
       setLoading(false)
     }

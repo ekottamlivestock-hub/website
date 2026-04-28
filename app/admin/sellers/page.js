@@ -59,6 +59,26 @@ function SellersContent() {
     return session
   }
 
+  // seller-docs is a private bucket. New applications store the storage
+  // PATH in id_proof_url / farm_photo_url; legacy rows might still hold an
+  // http URL. Open the path through a fresh signed URL; pass through http
+  // URLs unchanged for back-compat.
+  const openSellerDoc = async (pathOrUrl) => {
+    if (!pathOrUrl) return
+    if (/^https?:\/\//i.test(pathOrUrl)) {
+      window.open(pathOrUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
+    const { data, error } = await supabase.storage
+      .from('seller-docs')
+      .createSignedUrl(pathOrUrl, 60)
+    if (error || !data?.signedUrl) {
+      toast.error('Could not open document')
+      return
+    }
+    window.open(data.signedUrl, '_blank', 'noopener,noreferrer')
+  }
+
   // Updates a row and verifies a row was actually changed. Supabase silently
   // returns 0 rows when RLS blocks an UPDATE — without this check, a missing
   // policy would look like a success.
@@ -373,10 +393,18 @@ function SellersContent() {
                     <div><span className="text-stone-400">Phone:</span> <span className="text-stone-700">{app.profiles?.phone || 'N/A'}</span></div>
                     <div className="sm:col-span-2"><span className="text-stone-400">About:</span> <span className="text-stone-700">{app.about || 'N/A'}</span></div>
                     {app.id_proof_url && (
-                      <div><a href={app.id_proof_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">View ID Proof</a></div>
+                      <div>
+                        <button onClick={() => openSellerDoc(app.id_proof_url)} className="text-primary-600 hover:underline">
+                          View ID Proof
+                        </button>
+                      </div>
                     )}
                     {app.farm_photo_url && (
-                      <div><a href={app.farm_photo_url} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">View Farm Photo</a></div>
+                      <div>
+                        <button onClick={() => openSellerDoc(app.farm_photo_url)} className="text-primary-600 hover:underline">
+                          View Farm Photo
+                        </button>
+                      </div>
                     )}
                     {app.admin_note && (
                       <div className="sm:col-span-2 bg-red-50 text-red-700 p-3 rounded-xl text-xs">
