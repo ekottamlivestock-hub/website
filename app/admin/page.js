@@ -28,11 +28,17 @@ function DashboardContent() {
         supabase.from('listings').select('*', { count: 'exact', head: true }),
         supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'pending_review'),
         supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('orders').select('total_price'),
+        supabase.from('orders').select('total_price, status'),
         supabase.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'open'),
       ])
 
-      const revenue = (orders.data || []).reduce((sum, o) => sum + (o.total_price || 0), 0)
+      // Revenue counts only orders the seller has actually committed to —
+      // pending orders may still be cancelled, and cancelled orders never
+      // produced money. Same shape as the buyer dashboard's "total spent".
+      const FULFILLED = new Set(['confirmed', 'shipped', 'delivered'])
+      const revenue = (orders.data || [])
+        .filter(o => FULFILLED.has(o.status))
+        .reduce((sum, o) => sum + (o.total_price || 0), 0)
 
       setStats({
         users: users.count || 0,

@@ -37,8 +37,12 @@ function CategoriesContent() {
     setSubmitting(true)
     try {
       if (editId) {
+        // Keep the slug stable on edit — bookmarked / indexed URLs like
+        // /listings?category=cow would 404 if we re-derived the slug
+        // from a renamed category. Only the display name and description
+        // change here.
         await supabase.from('animal_categories').update({
-          name: form.name, slug: slugify(form.name), description: form.description
+          name: form.name, description: form.description
         }).eq('id', editId)
         toast.success('Category updated')
       } else {
