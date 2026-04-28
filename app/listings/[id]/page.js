@@ -47,6 +47,7 @@ export default function ListingDetailPage() {
     const fetchData = async (currentUser) => {
       setLoading(true)
 
+      let currentProfile = null
       try {
         if (currentUser) {
           const { data: prof, error: profErr } = await supabase
@@ -55,7 +56,8 @@ export default function ListingDetailPage() {
             .eq('id', currentUser.id)
             .maybeSingle()
           if (profErr) console.error('Profile fetch error:', profErr)
-          if (!cancelled) setProfile(prof || null)
+          currentProfile = prof || null
+          if (!cancelled) setProfile(currentProfile)
         }
 
         const { data: listingData, error } = await supabase
@@ -126,10 +128,17 @@ export default function ListingDetailPage() {
           if (!cancelled) setSimilarListings(similar || [])
         }
 
-        try {
-          await supabase.rpc('increment_view_count', { p_listing_id: id })
-        } catch (viewErr) {
-          console.warn('View count increment failed:', viewErr)
+        // Only count views from real prospective buyers — skip the seller
+        // viewing their own listing and skip admins reviewing it. Anonymous
+        // visitors still count.
+        const isOwnListing = currentUser && currentUser.id === listingData.seller_id
+        const isAdmin = currentProfile?.role === 'admin'
+        if (!isOwnListing && !isAdmin) {
+          try {
+            await supabase.rpc('increment_view_count', { p_listing_id: id })
+          } catch (viewErr) {
+            console.warn('View count increment failed:', viewErr)
+          }
         }
       } catch (err) {
         console.error("Error in fetchData:", err)

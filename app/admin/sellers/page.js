@@ -136,6 +136,10 @@ function SellersContent() {
 
   const handleReject = async () => {
     if (!rejectModal) return
+    if (rejectNote.trim().length < 5) {
+      toast.error('Please provide a rejection reason (at least 5 characters)')
+      return
+    }
     setProcessing(true)
     try {
       const session = await getAdminSession()

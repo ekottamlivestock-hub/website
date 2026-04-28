@@ -5,19 +5,25 @@ import { supabase } from '@/lib/supabase'
 import { timeAgo, getNotificationColor } from '@/lib/helpers'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import toast from 'react-hot-toast'
-import { Loader2, Bell, CheckCheck, Package, ShieldCheck, Store, AlertCircle, Truck } from 'lucide-react'
+import { Loader2, Bell, CheckCheck, Package, ShieldCheck, Store, AlertCircle, Truck, XCircle } from 'lucide-react'
 
 const typeIcons = {
   new_order: Package,
   order_confirmed: CheckCheck,
   order_shipped: Truck,
   order_delivered: Package,
+  order_cancelled: XCircle,
   listing_approved: ShieldCheck,
   listing_rejected: AlertCircle,
+  listing_paused: AlertCircle,
+  listing_unpaused: ShieldCheck,
   new_listing_pending: Bell,
   new_seller_application: Store,
   seller_approved: ShieldCheck,
   seller_rejected: AlertCircle,
+  seller_suspended: AlertCircle,
+  seller_reactivated: ShieldCheck,
+  seller_removed: AlertCircle,
 }
 
 export default function NotificationsPage() {
@@ -32,19 +38,56 @@ function NotificationsContent() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const fetchNotifications = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .order('created_at', { ascending: false })
-    setNotifications(data || [])
-    setLoading(false)
-  }
+  // Subscribe to realtime so new notifications stream into this page while
+  // it's open, instead of requiring a refresh. Mirrors NotificationBell.
+  useEffect(() => {
+    let cancelled = false
+    let channel
 
-  useEffect(() => { fetchNotifications() }, [])
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || cancelled) return
+
+      const userId = session.user.id
+
+      const fetchAll = async () => {
+        const { data } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+        if (!cancelled) {
+          setNotifications(data || [])
+          setLoading(false)
+        }
+      }
+
+      await fetchAll()
+
+      // Debounce bursts (e.g. mark-all-read fires N updates).
+      let debounceTimer
+      const refetch = () => {
+        clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(fetchAll, 400)
+      }
+
+      channel = supabase
+        .channel(`notifications-page-${userId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+          refetch
+        )
+        .subscribe()
+    }
+
+    init()
+
+    return () => {
+      cancelled = true
+      if (channel) supabase.removeChannel(channel)
+    }
+  }, [])
 
   const markAsRead = async (id) => {
     await supabase.from('notifications').update({ is_read: true }).eq('id', id)

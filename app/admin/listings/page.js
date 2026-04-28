@@ -43,6 +43,10 @@ function ListingsContent() {
   useEffect(() => { fetchListings() }, [fetchListings])
 
   const handleAction = async (listing, action, note = '') => {
+    if (action === 'rejected' && note.trim().length < 5) {
+      toast.error('Please provide a rejection reason (at least 5 characters)')
+      return
+    }
     setProcessing(true)
     const { data: { session } } = await supabase.auth.getSession()
     try {
