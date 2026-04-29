@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase-server'
+import { checkRateLimit } from '@/lib/ratelimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,6 +95,12 @@ export async function POST(req) {
   const supabaseAuth = createServerClient()
   const { data: { user } } = await supabaseAuth.auth.getUser()
   if (!user) return json({ error: 'Unauthorized' }, 401)
+
+  // 1b. Per-user HTTP rate limit. 60 attempts/min covers any legitimate
+  //     foreground UI flow (admin bulk-approve fans out << 60/min, a
+  //     buyer placing one order fires 1). Anything beyond is automation.
+  const rl = await checkRateLimit(supabaseAuth, 'notify-internal', user.id, 60, 60)
+  if (!rl.ok) return json({ error: 'Too many requests. Please slow down.' }, 429)
 
   // 2. Parse and validate the request body.
   let body
