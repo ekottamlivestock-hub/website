@@ -35,11 +35,24 @@ function ProfileContent() {
         }
         setUser(session.user)
 
+        // profiles no longer carries phone (it's in profile_contacts now,
+        // RLS-gated to self / admin / active-order counterparty).
         const { data: prof, error: profErr } = await supabase
           .from('profiles').select('*').eq('id', session.user.id).maybeSingle()
         if (profErr) console.error('Profile fetch error:', profErr)
         setProfile(prof || null)
-        setForm({ phone: prof?.phone || '', state: prof?.state || '', city: prof?.city || '' })
+
+        const { data: contact } = await supabase
+          .from('profile_contacts')
+          .select('phone')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
+
+        setForm({
+          phone: contact?.phone || '',
+          state: prof?.state || '',
+          city: prof?.city || '',
+        })
 
         const { data: revs, error: revErr } = await supabase
           .from('reviews').select('*, profiles!reviews_reviewer_id_fkey(full_name)')
@@ -59,13 +72,27 @@ function ProfileContent() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const { error } = await supabase.from('profiles').update({
-        phone: form.phone, state: form.state, city: form.city,
+      // Public profile fields go to profiles.
+      const { error: profErr } = await supabase.from('profiles').update({
+        state: form.state, city: form.city,
       }).eq('id', user.id)
-      if (error) throw error
+      if (profErr) throw profErr
+
+      // Phone goes to the RLS-protected contact table. Upsert because
+      // first-time savers won't have a row yet.
+      const { error: contactErr } = await supabase
+        .from('profile_contacts')
+        .upsert(
+          { user_id: user.id, phone: form.phone || null },
+          { onConflict: 'user_id' }
+        )
+      if (contactErr) throw contactErr
+
       toast.success('Profile updated!')
-    } catch { toast.error('Failed to update') }
-    finally { setSaving(false) }
+    } catch (err) {
+      console.error('Profile save error:', err)
+      toast.error('Failed to update')
+    } finally { setSaving(false) }
   }
 
   if (loading) return <div className="page-container flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary-600" /></div>

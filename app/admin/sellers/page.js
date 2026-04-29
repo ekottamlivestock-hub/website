@@ -28,25 +28,47 @@ function SellersContent() {
 
   const fetchApps = useCallback(async () => {
     setLoading(true)
-    const query = supabase
-      .from('seller_applications')
-      .select('*, profiles!seller_applications_user_id_fkey(full_name, avatar_url, phone, role, seller_status)')
-      .order('created_at', { ascending: false })
 
-    // For the "suspended" tab we filter by seller_status on the profile
+    // Phones live in profile_contacts (RLS-gated), not on profiles.
+    // Pull applications first, then a parallel fetch for the contact rows
+    // belonging to the applicants in view, then merge.
+    const baseSelect = '*, profiles!seller_applications_user_id_fkey(full_name, avatar_url, role, seller_status)'
+
+    let apps
     if (tab === 'suspended') {
-      // Suspended sellers still have an approved application — filter by profile status
       const { data } = await supabase
         .from('seller_applications')
-        .select('*, profiles!seller_applications_user_id_fkey(full_name, avatar_url, phone, role, seller_status)')
+        .select(baseSelect)
         .eq('status', 'approved')
         .eq('profiles.seller_status', 'suspended')
         .order('created_at', { ascending: false })
-      setApplications((data || []).filter(a => a.profiles?.seller_status === 'suspended'))
+      apps = (data || []).filter(a => a.profiles?.seller_status === 'suspended')
     } else {
-      const { data } = await query.eq('status', tab)
-      setApplications(data || [])
+      const { data } = await supabase
+        .from('seller_applications')
+        .select(baseSelect)
+        .eq('status', tab)
+        .order('created_at', { ascending: false })
+      apps = data || []
     }
+
+    // Hydrate phones for the applicants currently shown. Admin RLS lets
+    // this through; the public profiles table no longer carries phone.
+    const userIds = apps.map(a => a.user_id).filter(Boolean)
+    if (userIds.length > 0) {
+      const { data: contacts } = await supabase
+        .from('profile_contacts')
+        .select('user_id, phone')
+        .in('user_id', userIds)
+      const phoneByUser = Object.fromEntries((contacts || []).map(c => [c.user_id, c.phone]))
+      apps = apps.map(a => ({
+        ...a,
+        // Keep the same shape the rest of the page reads from: app.profiles.phone
+        profiles: a.profiles ? { ...a.profiles, phone: phoneByUser[a.user_id] || null } : a.profiles,
+      }))
+    }
+
+    setApplications(apps)
     setLoading(false)
   }, [tab])
 
