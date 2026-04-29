@@ -148,11 +148,28 @@ export default function ListingDetailPage() {
       }
     }
 
+    // Prime the page synchronously via getSession(), then subscribe for
+    // later auth changes. Relying on onAuthStateChange's initial event
+    // alone left the page stuck on its skeleton if the SDK didn't fire
+    // INITIAL_SESSION (BFCache, Strict-Mode double-mount, lock contention).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
+      setUser(session?.user || null)
+      fetchData(session?.user || null)
+    }).catch(() => {
+      if (cancelled) return
+      // Worst case: treat as anonymous rather than wedging on the skeleton.
+      setUser(null)
+      fetchData(null)
+    })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (cancelled) return
-        setUser(session?.user || null)
-        fetchData(session?.user || null)
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          setUser(session?.user || null)
+          fetchData(session?.user || null)
+        }
       }
     )
 

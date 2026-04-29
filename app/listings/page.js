@@ -91,17 +91,42 @@ function ListingsContent() {
     fetchBreeds()
   }, [filters.category, categories])
 
-  // Track auth session via onAuthStateChange
+  // Track auth session. Prime `sessionReady` synchronously via getSession()
+  // and ALSO subscribe for later changes, because onAuthStateChange's
+  // initial event isn't fired reliably (BFCache restores, Strict Mode
+  // double-mount, navigator.locks held by another tab, etc.). The
+  // previous version gated every listing fetch behind the subscriber
+  // firing, which led to blank pages on certain navigations.
   const [sessionReady, setSessionReady] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return
+      setUser(session?.user || null)
+      setSessionReady(true)
+    }).catch(() => {
+      if (cancelled) return
+      // Treat session lookup failures as "anonymous" rather than wedging.
+      setUser(null)
+      setSessionReady(true)
+    })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setUser(session?.user || null)
-        setSessionReady(true)
+        if (cancelled) return
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          setUser(session?.user || null)
+          setSessionReady(true)
+        }
       }
     )
-    return () => subscription.unsubscribe()
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [])
 
   // Fetch listings

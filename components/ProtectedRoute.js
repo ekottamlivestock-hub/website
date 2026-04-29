@@ -12,7 +12,10 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }) {
   const router = useRouter()
 
   useEffect(() => {
+    let cancelled = false
+
     const checkAuth = async (session) => {
+      if (cancelled) return
       if (!session) {
         toast.error('Please sign in to continue')
         router.push('/')
@@ -20,8 +23,10 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }) {
       }
 
       if (requiredRole === 'any') {
-        setAuthorized(true)
-        setLoading(false)
+        if (!cancelled) {
+          setAuthorized(true)
+          setLoading(false)
+        }
         return
       }
 
@@ -29,7 +34,9 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }) {
         .from('profiles')
         .select('role, seller_status')
         .eq('id', session.user.id)
-        .single()
+        .maybeSingle()
+
+      if (cancelled) return
 
       if (!profile) {
         toast.error('Profile not found')
@@ -46,20 +53,34 @@ export default function ProtectedRoute({ children, requiredRole = 'any' }) {
       if (roleCheck[requiredRole]) {
         setAuthorized(true)
       } else {
-        toast.error('You don\'t have permission to access this page')
+        toast.error("You don't have permission to access this page")
         router.push('/')
       }
       setLoading(false)
     }
 
-    // Use onAuthStateChange to wait for auth to settle after OAuth redirect
+    // Run the check once with whatever session exists right now,
+    // THEN subscribe to changes. Relying on onAuthStateChange to fire
+    // INITIAL_SESSION left users stuck on the loading spinner when the
+    // event didn't arrive (BFCache, Strict-Mode race, lock contention).
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      checkAuth(session)
+    }).catch(() => {
+      if (!cancelled) checkAuth(null)
+    })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        checkAuth(session)
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          checkAuth(session)
+        }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
   }, [requiredRole, router])
 
   if (loading) {

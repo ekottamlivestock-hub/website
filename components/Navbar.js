@@ -75,24 +75,40 @@ export default function Navbar() {
   }
 
   useEffect(() => {
+    let cancelled = false
+
+    const hydrate = async (session) => {
+      if (cancelled) return
+      if (session?.user) {
+        setUser(session.user)
+        await fetchProfile(session.user.id)
+        if (cancelled) return
+        subscribeToProfile(session.user.id)
+      } else {
+        setUser(null)
+        setProfile(null)
+        if (realtimeChannelRef.current) {
+          supabase.removeChannel(realtimeChannelRef.current)
+          realtimeChannelRef.current = null
+        }
+      }
+    }
+
+    // Prime once on mount. Relying on onAuthStateChange's initial event
+    // alone caused the navbar to render in a "logged-out" state on
+    // pages restored from BFCache or after Strict-Mode double mount.
+    supabase.auth.getSession().then(({ data: { session } }) => hydrate(session))
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser(session.user)
-          await fetchProfile(session.user.id)
-          subscribeToProfile(session.user.id)
-        } else {
-          setUser(null)
-          setProfile(null)
-          // Unsubscribe when logged out
-          if (realtimeChannelRef.current) {
-            supabase.removeChannel(realtimeChannelRef.current)
-            realtimeChannelRef.current = null
-          }
+      (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          hydrate(session)
         }
       }
     )
+
     return () => {
+      cancelled = true
       subscription.unsubscribe()
       if (realtimeChannelRef.current) {
         supabase.removeChannel(realtimeChannelRef.current)
