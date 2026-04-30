@@ -75,6 +75,8 @@ function DashboardContent() {
     { label: 'Seller Applications', href: '/admin/sellers', desc: `${stats.pendingSellers} pending` },
     { label: 'Manage Categories', href: '/admin/categories', desc: 'Add/edit animal types' },
     { label: 'Manage Breeds', href: '/admin/breeds', desc: 'Add breeds per category' },
+    { label: 'Manage News', href: '/admin/news', desc: 'Home page news section' },
+    { label: 'Manage Ads', href: '/admin/ads', desc: 'Home page ad images' },
     { label: 'View Reports', href: '/admin/reports', desc: `${stats.openReports} open` },
     { label: 'All Orders', href: '/admin/orders', desc: `${stats.orders} total` },
   ]

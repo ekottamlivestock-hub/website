@@ -9,6 +9,8 @@ import { COMPANY_CONTACT } from '@/lib/helpers'
 import SearchBar from '@/components/SearchBar'
 import ListingGrid from '@/components/ListingGrid'
 import BreedExplorer from '@/components/BreedExplorer'
+import NewsRail from '@/components/NewsRail'
+import HomeAds from '@/components/HomeAds'
 import toast from 'react-hot-toast'
 import {
   ShieldCheck, Truck, Users, Star,
@@ -323,6 +325,12 @@ function HomePageContent() {
           emptyActionHref="/sell"
         />
       </section>
+
+      {/* ---------------- WE IN NEWS (admin-managed) ---------------- */}
+      <NewsRail />
+
+      {/* ---------------- HOME ADS (admin-managed) ---------------- */}
+      <HomeAds />
 
       {/* ---------------- WHY ---------------- */}
       <section className="py-20 sm:py-28" id="why">
