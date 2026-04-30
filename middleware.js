@@ -16,9 +16,9 @@ export async function middleware(request) {
     return NextResponse.next()
   }
 
-  const publicRoutes = ['/', '/listings', '/auth/callback', '/about', '/terms', '/privacy', '/refund', '/fraud-prevention']
+  const publicRoutes = ['/', '/listings', '/news', '/auth/callback', '/about', '/terms', '/privacy', '/refund', '/fraud-prevention']
   const isPublicRoute = publicRoutes.some(route =>
-    pathname === route || pathname.startsWith('/listings/')
+    pathname === route || pathname.startsWith('/listings/') || pathname.startsWith('/news/')
   )
   const protectedRoutes = ['/admin', '/seller', '/sell', '/buyer', '/profile', '/notifications']
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
