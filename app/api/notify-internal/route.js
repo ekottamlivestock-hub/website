@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase-server'
 import { checkRateLimit } from '@/lib/ratelimit'
+import { isSameOrigin, csrfReject } from '@/lib/csrf'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,6 +86,10 @@ async function validateNonAdmin({ actorId, recipientId, type, metadata, supabase
 }
 
 export async function POST(req) {
+  // CSRF defence: reject any cross-origin request before doing auth work.
+  // The auth cookie alone is not enough to authorise a notification insert.
+  if (!isSameOrigin(req)) return csrfReject()
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !supabaseServiceKey) {

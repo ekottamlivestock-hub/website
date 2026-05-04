@@ -1,10 +1,15 @@
 import webpush from 'web-push'
 import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase-server'
+import { isSameOrigin, csrfReject } from '@/lib/csrf'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req) {
+  // CSRF defence: reject any cross-origin request before doing auth work.
+  // The auth cookie alone is not enough to authorise a state-changing call.
+  if (!isSameOrigin(req)) return csrfReject()
+
   // Initialize at request time (not build time) to avoid missing env var errors
   const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY
