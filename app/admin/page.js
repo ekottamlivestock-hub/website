@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { formatPrice } from '@/lib/helpers'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { Users, Store, ListChecks, Package, DollarSign, Clock, ShieldCheck, Flag, Loader2, ArrowRight } from 'lucide-react'
+import { Users, Store, ListChecks, Package, DollarSign, Clock, ShieldCheck, Flag, Loader2, ArrowRight, Megaphone } from 'lucide-react'
 
 export default function AdminDashboard() {
   return (
@@ -77,6 +77,7 @@ function DashboardContent() {
     { label: 'Manage Breeds', href: '/admin/breeds', desc: 'Add breeds per category' },
     { label: 'Manage News', href: '/admin/news', desc: 'Home page news section' },
     { label: 'Manage Ads', href: '/admin/ads', desc: 'Home page ad images' },
+    { label: 'Scrolling Bar', href: '/admin/scrolling', desc: 'Sitewide marquee announcements' },
     { label: 'View Reports', href: '/admin/reports', desc: `${stats.openReports} open` },
     { label: 'All Orders', href: '/admin/orders', desc: `${stats.orders} total` },
   ]

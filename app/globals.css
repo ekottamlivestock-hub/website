@@ -284,6 +284,65 @@
 }
 .bottom-sheet-enter { animation: slideUpSheet 0.3s ease-out; }
 
+
+/* ──────────────────────────────────────────────────────────────────────
+   ScrollingBar — sitewide marquee below the navbar
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Continuous right-to-left ticker. The ScrollingBar component duplicates
+   the item list, so a -50% translate makes the loop seamless. Speed tuned
+   for comfortable reading at typical announcement length (~5s/item). */
+@keyframes marqueeScroll {
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+
+.marquee-track {
+  animation: marqueeScroll 60s linear infinite;
+  will-change: transform;
+}
+
+/* Pause on hover so users can read a particular item. */
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* Soft fade at both edges so items appear/disappear without a hard cut. */
+.marquee-mask {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 48px,
+    #000 calc(100% - 48px),
+    transparent 100%
+  );
+          mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 48px,
+    #000 calc(100% - 48px),
+    transparent 100%
+  );
+}
+
+/* When the ScrollingBar is mounted with content it sets data-scrollbar="on"
+   on <body>, and main bumps its top padding to clear navbar (4rem) +
+   bar (2.5rem) together. When zero items are active the attribute is
+   removed and main reverts to the static pt-16 utility. */
+body[data-scrollbar="on"] main {
+  padding-top: calc(4rem + 2.5rem);
+}
+
+/* Reduced-motion users get the marquee paused — items are still visible,
+   just static. The earlier @media (prefers-reduced-motion) block already
+   neutralises animation duration globally; this is belt-and-braces. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
+    transform: none;
+  }
+}
+
 /* Hide Google Translate UI elements */
 .goog-te-banner-frame.skiptranslate { display: none !important; }
 body { top: 0px !important; }

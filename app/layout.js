@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import Script from 'next/script'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import ScrollingBar from '@/components/ScrollingBar'
 import ErrorSuppressor from '@/components/ErrorSuppressor'
 
 // Body / UI sans — Plus Jakarta Sans is geometric, friendly, and reads
@@ -69,6 +70,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-screen flex flex-col" suppressHydrationWarning>
         <ErrorSuppressor />
         <Navbar />
+        <ScrollingBar />
         <main className="flex-1 pt-16">
           {children}
         </main>
